@@ -1,6 +1,6 @@
 // ============================================================
 // Tool Storeroom - Apps Script (v11)
-// Students sheet: A = StudentNo, B = Name, C = Year, D = Surname.
+// Students sheet: A = StudentNo, B = Name, C = Surname, D = Year.
 // One complete file. Replace everything in Extensions > Apps Script with this.
 // Contains: v7 staff pages and QR links (unchanged) + JSON API for CPUT-Workshop-Scanner
 // (sign-in, lookup, check out, check in, and tools out to a student).
@@ -353,7 +353,7 @@ function studentRowForHolder(holder) {
 // Year for a holder label like "Name (123)". Empty if not found.
 function yearForHolder(holder) {
   const r = studentRowForHolder(holder);
-  return r && r[2] ? String(r[2]).trim() : '';
+  return r && r[3] ? String(r[3]).trim() : '';
 }
 
 // Full name for a holder label, e.g. "Thandi Mkhize (123)". Falls back to the label.
@@ -361,7 +361,7 @@ function fullNameForHolder(holder) {
   const m = /\(([^()]*)\)\s*$/.exec(String(holder || ''));
   const r = m ? studentRow(m[1]) : null;
   if (!r) return holder;
-  return (String(r[1]) + ' ' + String(r[3] || '')).trim() + ' (' + m[1] + ')';
+  return (String(r[1]) + ' ' + String(r[2] || '')).trim() + ' (' + m[1] + ')';
 }
 
 // ---------- HTML helpers ----------
@@ -480,8 +480,8 @@ function apiStudent(token, no) {
   staffFromToken(token);
   const r = studentRow(no);
   if (!r) throw new Error('Student number not found');
-  const full = (String(r[1]) + ' ' + String(r[3] || '')).trim();
-  return { holder: full + ' (' + no + ')', year: r[2] ? String(r[2]).trim() : '' };
+  const full = (String(r[1]) + ' ' + String(r[2] || '')).trim();
+  return { holder: full + ' (' + no + ')', year: r[3] ? String(r[3]).trim() : '' };
 }
 
 function apiTool(token, id) {
