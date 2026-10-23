@@ -367,22 +367,26 @@ function addManual(){
   mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
+// The tool appears in the list straight away as "Checking…", then fills in when the server replies.
 async function addTool(id){
   touch();
   if (S.items.has(id)) return status(id + ' is already in the list.', 'bad');
   if (pending.has(id)) return;
   pending.add(id);
+  S.items.set(id, { id: id, name: 'Checking…', pending: true });
+  renderLists();
   const token = S.token;
   try {
     const t = await api({ api: 'tool', token: token, id: id });
     if (S.token !== token) return;
     S.items.set(id, t);
     status(t.name + ' (' + t.id + ') added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
-    renderLists();
   } catch (e) {
+    if (S.token === token) S.items.delete(id);
     handleErr(e);
   } finally {
     pending.delete(id);
+    renderLists();
   }
 }
 
@@ -444,6 +448,7 @@ async function lookupTool(id){
   if (pending.has(id)) return;
   pending.add(id);
   const token = S.token;
+  $('whoResult').innerHTML = '<div class="who"><div class="big">' + esc(id) + '</div><p style="margin:10px 0 0">Looking up…</p></div>';
   try {
     const t = await api({ api: 'tool', token: token, id: id });
     if (S.token !== token || mode !== 'who') return;
@@ -459,6 +464,7 @@ async function lookupTool(id){
       : '<div class="who"><div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
           '<p style="margin:10px 0 0">Available. Not out to anyone.</p></div>';
   } catch (e) {
+    $('whoResult').innerHTML = '';
     handleErr(e);
   } finally {
     pending.delete(id);
@@ -468,7 +474,7 @@ async function lookupTool(id){
 // ---------- Lists and buttons ----------
 
 function rowHtml(t){
-  const detail = t.out
+  const detail = t.pending ? 'Checking…' : t.out
     ? 'Out to ' + esc(t.borrower || t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
     : 'Available';
   return '<div class="row"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
@@ -477,12 +483,12 @@ function rowHtml(t){
 }
 
 function renderLists(){
-  const outs = [], ins = [];
-  S.items.forEach(t => (t.out ? ins : outs).push(t));
+  const outs = [], ins = [], checking = [];
+  S.items.forEach(t => (t.pending ? checking : t.out ? ins : outs).push(t));
 
   $('nOut').textContent = outs.length;
   $('nIn').textContent = ins.length;
-  $('listOut').innerHTML = outs.map(rowHtml).join('') || '<p class="small">No tools waiting to be checked out.</p>';
+  $('listOut').innerHTML = checking.concat(outs).map(rowHtml).join('') || '<p class="small">No tools waiting to be checked out.</p>';
   $('listIn').innerHTML = ins.map(rowHtml).join('') || '<p class="small">No tools waiting to be checked in.</p>';
 
   $('outHint').textContent = outs.length && !S.student ? 'Confirm a student above before checking out.' : '';
@@ -495,7 +501,7 @@ function renderLists(){
 
 async function checkOut(){
   touch();
-  const ids = [...S.items.values()].filter(t => !t.out).map(t => t.id);
+  const ids = [...S.items.values()].filter(t => !t.pending && !t.out).map(t => t.id);
   if (!ids.length || !S.student) return;
   const token = S.token;
   busy = true; renderLists();
@@ -518,7 +524,7 @@ async function checkOut(){
 
 async function checkIn(){
   touch();
-  const ids = [...S.items.values()].filter(t => t.out).map(t => t.id);
+  const ids = [...S.items.values()].filter(t => !t.pending && t.out).map(t => t.id);
   if (!ids.length) return;
   const token = S.token;
   busy = true; renderLists();
