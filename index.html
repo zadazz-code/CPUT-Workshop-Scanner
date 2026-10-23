@@ -310,7 +310,12 @@ async function startCamera(){
   }
   qr = new Html5Qrcode('reader');
   try {
-    await qr.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 240, height: 240 } }, onCode, () => {});
+    // Scan area is now 90% of the shorter side of the camera view (was a fixed 240px square).
+    await qr.start({ facingMode: 'environment' }, {
+      fps: 15,
+      qrbox: (w, h) => { const s = Math.floor(Math.min(w, h) * 0.9); return { width: s, height: s }; },
+      experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+    }, onCode, () => {});
     camOn = true;
     $('camBtn').textContent = 'Stop camera';
   } catch (e) {
