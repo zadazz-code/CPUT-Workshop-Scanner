@@ -220,7 +220,8 @@ function renderStudent(){
   const box = $('studentBox');
   if (S.student) {
     box.innerHTML =
-      '<div style="font-weight:bold">' + esc(S.student.holder) + '</div>' +
+      '<div style="font-weight:bold">' + esc(S.student.holder) +
+        (S.student.year ? ' <span style="font-weight:normal">· ' + esc(S.student.year) + '</span>' : '') + '</div>' +
       '<div class="small">Return by ' + esc(fmtDate(S.student.ret)) + '</div>' +
       '<button class="ghost" onclick="changeStudent()">Change student</button>';
     return;
@@ -280,8 +281,8 @@ async function confirmStudent(){
   try {
     const r = await api({ api: 'student', token: token, no: no });
     if (S.token !== token) return;
-    S.student = { no: no, holder: r.holder, ret: ret };
-    status('Student confirmed: ' + r.holder);
+    S.student = { no: no, holder: r.holder, ret: ret, year: r.year || '' };
+    status('Student confirmed: ' + r.holder + (r.year ? ' (' + r.year + ')' : ''));
     renderStudent();
     renderLists();
     loadHolding();
@@ -398,6 +399,7 @@ async function lookupTool(id){
           '<div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
           '<p style="margin:12px 0 2px"><b>Out to</b></p>' +
           '<div class="big">' + esc(t.holder) + '</div>' +
+          (t.year ? '<div style="font-size:18px;margin-top:2px">' + esc(t.year) + '</div>' : '') +
           '<p style="margin:12px 0 0"><b>Return by</b> ' + esc(t.due || 'no date set') + '</p>' +
           (t.overdue ? '<p class="tag" style="font-weight:bold;margin:6px 0 0">OVERDUE</p>' : '') +
         '</div>'

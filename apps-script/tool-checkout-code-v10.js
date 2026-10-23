@@ -1,5 +1,6 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v9)
+// Tool Storeroom - Apps Script (v10)
+// v10: Students sheet has a Year column (C): 1st year, 2nd year, 3rd year, Advanced Diploma, Staff.
 // One complete file. Replace everything in Extensions > Apps Script with this.
 // Contains: v7 staff pages and QR links (unchanged) + JSON API for CPUT-Workshop-Scanner
 // (sign-in, lookup, check out, check in, and tools out to a student).
@@ -332,10 +333,23 @@ function findTool(id) {
   return r ? { id: r[0], name: r[1], status: r[4], holder: r[5], due: r[7], signedBy: r[8] } : null;
 }
 
-function studentLookup(no) {
+// Students sheet: A = StudentNo, B = Name, C = Year (1st year, 2nd year, 3rd year, Advanced Diploma, Staff)
+function studentRow(no) {
   const rows = SpreadsheetApp.getActive().getSheetByName(STUDENTS).getDataRange().getValues();
-  const r = rows.slice(1).find(r => String(r[0]) === String(no));
+  return rows.slice(1).find(r => String(r[0]) === String(no)) || null;
+}
+
+function studentLookup(no) {
+  const r = studentRow(no);
   return r ? r[1] + ' (' + no + ')' : null;
+}
+
+// Year for a holder label like "Name (123)". Empty if not found.
+function yearForHolder(holder) {
+  const m = /\(([^()]*)\)\s*$/.exec(String(holder || ''));
+  if (!m) return '';
+  const r = studentRow(m[1]);
+  return r && r[2] ? String(r[2]).trim() : '';
 }
 
 // ---------- HTML helpers ----------
@@ -452,9 +466,9 @@ function staffFromToken(token) {
 
 function apiStudent(token, no) {
   staffFromToken(token);
-  const holder = studentLookup(no);
-  if (!holder) throw new Error('Student number not found');
-  return { holder: holder };
+  const r = studentRow(no);
+  if (!r) throw new Error('Student number not found');
+  return { holder: r[1] + ' (' + no + ')', year: r[2] ? String(r[2]).trim() : '' };
 }
 
 function apiTool(token, id) {
@@ -467,7 +481,8 @@ function apiTool(token, id) {
     id: t.id, name: t.name, out: out,
     holder: out ? t.holder : '',
     due: due ? fmt(due) : '',
-    overdue: !!(out && due && due < new Date())
+    overdue: !!(out && due && due < new Date()),
+    year: out ? yearForHolder(t.holder) : ''
   };
 }
 
