@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#00897b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Storeroom">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Storeroom Scanner</title>
+<style>
+:root{--teal:#00897b;--dark:#00473f;--mid:#80cbc4;--light:#b2dfdb;--pale:#e0f2f1;--red:#c62828}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--pale);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:18px;color:#000}
+header{background:var(--teal);color:#fff;padding:14px 16px;font-weight:bold;font-size:20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+main{max-width:560px;margin:0 auto;padding:12px 14px 110px}
+h2{color:var(--dark);font-size:22px;margin:20px 0 8px}
+.card{background:#fff;border:2px solid var(--teal);border-radius:10px;padding:14px;margin:12px 0}
+label{display:block;font-weight:bold;color:var(--dark);margin:12px 0 6px}
+input{width:100%;height:52px;font-size:20px;padding:8px 10px;border:2px solid var(--teal);border-radius:8px;background:#fff;color:#000}
+button{display:block;width:100%;min-height:52px;font-size:20px;font-weight:bold;border:0;border-radius:8px;background:var(--teal);color:#fff;margin-top:12px;padding:12px;font-family:inherit}
+button.secondary{background:var(--dark)}
+button.ghost{background:#fff;color:var(--dark);border:2px solid var(--teal)}
+button.x{width:auto;min-height:40px;margin:0;padding:6px 14px;font-size:16px;background:#fff;color:var(--red);border:2px solid var(--red)}
+button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
+#signout{width:auto;min-height:40px;margin:0;padding:6px 12px;font-size:16px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:2px solid var(--mid);border-radius:8px;margin:8px 0;background:#fff}
+.row .id{font-weight:bold}
+.row small{color:#333;display:block;margin-top:2px}
+#reader{width:100%;border-radius:8px;overflow:hidden;background:#000}
+.small{font-size:15px;color:#333}
+.hidden{display:none !important}
+.toast{position:fixed;left:12px;right:12px;bottom:14px;max-width:536px;margin:0 auto;padding:14px;border-radius:10px;font-weight:bold;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:9}
+.toast.ok{background:var(--dark);color:#fff}
+.toast.bad{background:var(--red);color:#fff}
+</style>
+</head>
+<body>
+<header>
+  <span>Storeroom Scanner</span>
+  <button id="signout" class="ghost hidden" onclick="lockOut('Signed out.')">Sign out</button>
+</header>
+
+<main>
+  <section id="signin">
+    <h2>Staff sign-in</h2>
+    <div class="card">
+      <label for="pin">Your PIN</label>
+      <input id="pin" type="password" inputmode="numeric" autocomplete="off">
+      <button id="signinBtn" onclick="signIn()">Sign in</button>
+      <p class="small">Your PIN is used only to sign in. You are signed out after 10 minutes without activity.</p>
+    </div>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card" id="who" style="font-weight:bold"></div>
+
+    <h2>Student</h2>
+    <div class="card" id="studentBox"></div>
+
+    <h2>Scan tools</h2>
+    <div class="card">
+      <div id="reader"></div>
+      <button id="camBtn" class="secondary" onclick="toggleCamera()">Start camera</button>
+      <label for="manual">Or type a tool ID</label>
+      <input id="manual" placeholder="e.g. TL-042" autocapitalize="characters" autocomplete="off">
+      <button class="ghost" onclick="addManual()">Add tool</button>
+    </div>
+
+    <h2>To check out (<span id="nOut">0</span>)</h2>
+    <div id="listOut"></div>
+    <p id="outHint" class="small"></p>
+    <button id="btnOut" onclick="checkOut()" disabled>Check out</button>
+
+    <h2>To check in (<span id="nIn">0</span>)</h2>
+    <div id="listIn"></div>
+    <button id="btnIn" class="secondary" onclick="checkIn()" disabled>Check in</button>
+  </section>
+</main>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const API = 'https://script.google.com/macros/s/AKfycbzLni8uM0wizNMLKrfQyi_9keGhMZ6JMfQ235oC4JEXe02ZdKwn9bYNdLuDQ5hFHot6zw/exec';
+const IDLE_MS = 10 * 60 * 1000;
+
+function fresh(){ return { token: '', name: '', student: null, items: new Map() }; }
+
+let S = fresh();
+let last = Date.now();
+let busy = false;
+let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 0;
+const pending = new Set();
+
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// ---------- Messages ----------
+
+function status(msg, kind = 'ok', ms = 6000){
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + kind;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
+}
+
+function handleErr(e){
+  if (/Session expired/i.test(e.message)) return lockOut('Your session ended. Sign in again.');
+  status(e.message, 'bad', 9000);
+}
+
+// ---------- Server calls (JSONP: works from GitHub Pages without CORS) ----------
+
+function api(params){
+  return new Promise((resolve, reject) => {
+    const name = 'cb_' + (++cbN) + '_' + Date.now();
+    const s = document.createElement('script');
+    const timer = setTimeout(() => finish(new Error('No response from the storeroom server. Check the signal and try again.')), 20000);
+    function finish(err, data){
+      clearTimeout(timer);
+      delete window[name];
+      s.remove();
+      if (err) reject(err); else resolve(data);
+    }
+    window[name] = res => res.ok ? finish(null, res.data) : finish(new Error(res.error));
+    s.onerror = () => finish(new Error('Could not reach the storeroom server.'));
+    const qs = new URLSearchParams(Object.assign({}, params, { callback: name }));
+    s.src = API + '?' + qs.toString();
+    document.head.appendChild(s);
+  });
+}
+
+// ---------- Idle sign-out (10 minutes) ----------
+
+function touch(){ last = Date.now(); }
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, touch, true));
+setInterval(() => {
+  if (S.token && Date.now() - last > IDLE_MS) lockOut('Signed out after 10 minutes without activity.');
+}, 5000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && S.token && Date.now() - last > IDLE_MS) lockOut('Signed out after 10 minutes without activity.');
+});
+
+// ---------- Sign in / out ----------
+
+async function signIn(){
+  const pin = $('pin').value.trim();
+  if (!pin) return status('Enter your PIN.', 'bad');
+  $('signinBtn').disabled = true;
+  try {
+    const r = await api({ api: 'signin', pin: pin });
+    S = fresh();
+    S.token = r.token;
+    S.name = r.name;
+    $('pin').value = '';
+    touch();
+    showApp();
+  } catch (e) {
+    status(e.message, 'bad', 9000);
+  } finally {
+    $('signinBtn').disabled = false;
+  }
+}
+
+function showApp(){
+  $('signin').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  $('signout').classList.remove('hidden');
+  $('who').textContent = 'Signed in as ' + S.name + '. Signs out after 10 minutes without activity.';
+  renderStudent();
+  renderLists();
+}
+
+async function lockOut(msg){
+  await stopCamera();
+  S = fresh();
+  $('app').classList.add('hidden');
+  $('signin').classList.remove('hidden');
+  $('signout').classList.add('hidden');
+  if (msg) status(msg, 'bad', 9000);
+}
+
+// ---------- Student ----------
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function fmtDate(ymd){
+  return new Date(ymd + 'T12:00:00').toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function renderStudent(){
+  const box = $('studentBox');
+  if (S.student) {
+    box.innerHTML =
+      '<div style="font-weight:bold">' + esc(S.student.holder) + '</div>' +
+      '<div class="small">Return by ' + esc(fmtDate(S.student.ret)) + '</div>' +
+      '<button class="ghost" onclick="changeStudent()">Change student</button>';
+    return;
+  }
+  const today = todayStr();
+  box.innerHTML =
+    '<label for="stuNo">Student number</label>' +
+    '<input id="stuNo" inputmode="numeric" autocomplete="off">' +
+    '<label for="retDate">Return date</label>' +
+    '<input id="retDate" type="date" value="' + today + '" min="' + today + '">' +
+    '<button onclick="confirmStudent()">Confirm student</button>';
+}
+
+function changeStudent(){
+  touch();
+  S.student = null;
+  renderStudent();
+  renderLists();
+}
+
+async function confirmStudent(){
+  touch();
+  const no = $('stuNo').value.trim();
+  const ret = $('retDate').value;
+  if (!no) return status('Enter the student number.', 'bad');
+  if (!ret) return status('Enter the return date.', 'bad');
+  const token = S.token;
+  try {
+    const r = await api({ api: 'student', token: token, no: no });
+    if (S.token !== token) return;
+    S.student = { no: no, holder: r.holder, ret: ret };
+    status('Student confirmed: ' + r.holder);
+    renderStudent();
+    renderLists();
+  } catch (e) {
+    handleErr(e);
+  }
+}
+
+// ---------- Scanning ----------
+
+function parseId(text){
+  try {
+    const t = new URL(text).searchParams.get('tool');
+    if (t) return t.trim();
+  } catch (e) {}
+  return null;
+}
+
+async function startCamera(){
+  if (camOn) return;
+  if (typeof Html5Qrcode === 'undefined') {
+    return status('The scanner did not load. Check the internet connection, or type the tool ID.', 'bad', 9000);
+  }
+  qr = new Html5Qrcode('reader');
+  try {
+    await qr.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 240, height: 240 } }, onCode, () => {});
+    camOn = true;
+    $('camBtn').textContent = 'Stop camera';
+  } catch (e) {
+    status('Camera not available. Allow camera access in your browser, or type the tool ID below.', 'bad', 9000);
+  }
+}
+
+async function stopCamera(){
+  if (qr && camOn) {
+    try { await qr.stop(); } catch (e) {}
+    try { qr.clear(); } catch (e) {}
+  }
+  qr = null;
+  camOn = false;
+  $('camBtn').textContent = 'Start camera';
+}
+
+function toggleCamera(){
+  touch();
+  camOn ? stopCamera() : startCamera();
+}
+
+function onCode(text){
+  touch();
+  const id = parseId(text);
+  if (!id) return status('That QR code is not a storeroom tool.', 'bad');
+  const now = Date.now();
+  if (id === lastId && now - lastAt < 3000) return; // ignore the same label being read again
+  lastId = id;
+  lastAt = now;
+  addTool(id);
+}
+
+function addManual(){
+  touch();
+  const id = $('manual').value.trim().toUpperCase();
+  if (!id) return;
+  $('manual').value = '';
+  addTool(id);
+}
+
+async function addTool(id){
+  touch();
+  if (S.items.has(id)) return status(id + ' is already in the list.', 'bad');
+  if (pending.has(id)) return;
+  pending.add(id);
+  const token = S.token;
+  try {
+    const t = await api({ api: 'tool', token: token, id: id });
+    if (S.token !== token) return;
+    S.items.set(id, t);
+    status(t.name + ' (' + t.id + ') added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
+    renderLists();
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    pending.delete(id);
+  }
+}
+
+function removeItem(id){
+  touch();
+  S.items.delete(id);
+  renderLists();
+}
+
+// ---------- Lists and buttons ----------
+
+function rowHtml(t){
+  const detail = t.out
+    ? 'Out to ' + esc(t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
+    : 'Available';
+  return '<div class="row"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+    '<small>' + detail + '</small></div>' +
+    '<button class="x" onclick="removeItem(\'' + esc(t.id) + '\')">Remove</button></div>';
+}
+
+function renderLists(){
+  const outs = [], ins = [];
+  S.items.forEach(t => (t.out ? ins : outs).push(t));
+
+  $('nOut').textContent = outs.length;
+  $('nIn').textContent = ins.length;
+  $('listOut').innerHTML = outs.map(rowHtml).join('') || '<p class="small">No tools waiting to be checked out.</p>';
+  $('listIn').innerHTML = ins.map(rowHtml).join('') || '<p class="small">No tools waiting to be checked in.</p>';
+
+  $('outHint').textContent = outs.length && !S.student ? 'Confirm a student above before checking out.' : '';
+  $('btnOut').textContent = outs.length ? 'Check out ' + outs.length + ' tool' + (outs.length > 1 ? 's' : '') : 'Check out';
+  $('btnOut').disabled = busy || !outs.length || !S.student;
+
+  $('btnIn').textContent = ins.length ? 'Check in ' + ins.length + ' tool' + (ins.length > 1 ? 's' : '') : 'Check in';
+  $('btnIn').disabled = busy || !ins.length;
+}
+
+async function checkOut(){
+  touch();
+  const ids = [...S.items.values()].filter(t => !t.out).map(t => t.id);
+  if (!ids.length || !S.student) return;
+  const token = S.token;
+  busy = true; renderLists();
+  try {
+    const r = await api({ api: 'checkout', token: token, ids: ids.join(','), no: S.student.no, ret: S.student.ret });
+    if (S.token !== token) return;
+    r.done.forEach(id => S.items.delete(id));
+    r.taken.forEach(id => S.items.delete(id));
+    let msg = 'Checked out ' + r.done.length + ' to ' + r.holder + ', return by ' + r.returnBy + '.';
+    if (r.taken.length) msg += ' Not checked out (already out or unknown): ' + r.taken.join(', ') + '.';
+    status(msg, r.taken.length ? 'bad' : 'ok', 10000);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    busy = false;
+    renderLists();
+  }
+}
+
+async function checkIn(){
+  touch();
+  const ids = [...S.items.values()].filter(t => t.out).map(t => t.id);
+  if (!ids.length) return;
+  const token = S.token;
+  busy = true; renderLists();
+  try {
+    const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
+    if (S.token !== token) return;
+    r.done.forEach(id => S.items.delete(id));
+    r.notOut.forEach(id => S.items.delete(id));
+    let msg = 'Checked in ' + r.done.length + '.';
+    if (r.notOut.length) msg += ' Already in: ' + r.notOut.join(', ') + '.';
+    status(msg, r.notOut.length ? 'bad' : 'ok', 10000);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    busy = false;
+    renderLists();
+  }
+}
+
+// ---------- Offline shell ----------
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
