@@ -398,7 +398,7 @@ async function lookupTool(id){
       ? '<div class="who' + (t.overdue ? ' late' : '') + '">' +
           '<div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
           '<p style="margin:12px 0 2px"><b>Out to</b></p>' +
-          '<div class="big">' + esc(t.holder) + '</div>' +
+          '<div class="big">' + esc(t.borrower || t.holder) + '</div>' +
           (t.year ? '<div style="font-size:18px;margin-top:2px">' + esc(t.year) + '</div>' : '') +
           '<p style="margin:12px 0 0"><b>Return by</b> ' + esc(t.due || 'no date set') + '</p>' +
           (t.overdue ? '<p class="tag" style="font-weight:bold;margin:6px 0 0">OVERDUE</p>' : '') +
@@ -416,7 +416,7 @@ async function lookupTool(id){
 
 function rowHtml(t){
   const detail = t.out
-    ? 'Out to ' + esc(t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
+    ? 'Out to ' + esc(t.borrower || t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
     : 'Available';
   return '<div class="row"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
     '<small>' + detail + '</small></div>' +

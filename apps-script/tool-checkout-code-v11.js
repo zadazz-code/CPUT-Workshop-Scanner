@@ -1,6 +1,6 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v10)
-// v10: Students sheet has a Year column (C): 1st year, 2nd year, 3rd year, Advanced Diploma, Staff.
+// Tool Storeroom - Apps Script (v11)
+// Students sheet: A = StudentNo, B = Name, C = Year, D = Surname.
 // One complete file. Replace everything in Extensions > Apps Script with this.
 // Contains: v7 staff pages and QR links (unchanged) + JSON API for CPUT-Workshop-Scanner
 // (sign-in, lookup, check out, check in, and tools out to a student).
@@ -344,12 +344,24 @@ function studentLookup(no) {
   return r ? r[1] + ' (' + no + ')' : null;
 }
 
+// Student row for a holder label like "Name (123)". Null if not found.
+function studentRowForHolder(holder) {
+  const m = /\(([^()]*)\)\s*$/.exec(String(holder || ''));
+  return m ? studentRow(m[1]) : null;
+}
+
 // Year for a holder label like "Name (123)". Empty if not found.
 function yearForHolder(holder) {
-  const m = /\(([^()]*)\)\s*$/.exec(String(holder || ''));
-  if (!m) return '';
-  const r = studentRow(m[1]);
+  const r = studentRowForHolder(holder);
   return r && r[2] ? String(r[2]).trim() : '';
+}
+
+// Full name for a holder label, e.g. "Thandi Mkhize (123)". Falls back to the label.
+function fullNameForHolder(holder) {
+  const m = /\(([^()]*)\)\s*$/.exec(String(holder || ''));
+  const r = m ? studentRow(m[1]) : null;
+  if (!r) return holder;
+  return (String(r[1]) + ' ' + String(r[3] || '')).trim() + ' (' + m[1] + ')';
 }
 
 // ---------- HTML helpers ----------
@@ -468,7 +480,8 @@ function apiStudent(token, no) {
   staffFromToken(token);
   const r = studentRow(no);
   if (!r) throw new Error('Student number not found');
-  return { holder: r[1] + ' (' + no + ')', year: r[2] ? String(r[2]).trim() : '' };
+  const full = (String(r[1]) + ' ' + String(r[3] || '')).trim();
+  return { holder: full + ' (' + no + ')', year: r[2] ? String(r[2]).trim() : '' };
 }
 
 function apiTool(token, id) {
@@ -482,6 +495,7 @@ function apiTool(token, id) {
     holder: out ? t.holder : '',
     due: due ? fmt(due) : '',
     overdue: !!(out && due && due < new Date()),
+    borrower: out ? fullNameForHolder(t.holder) : '',
     year: out ? yearForHolder(t.holder) : ''
   };
 }
