@@ -38,6 +38,8 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .toast.ok{background:var(--dark);color:#fff}
 .toast.bad{background:var(--red);color:#fff}
 .brand{display:flex;align-items:center;gap:12px}
+#zoomBox{margin-top:10px}
+input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 .logo{height:40px;width:auto;background:#fff;border-radius:6px;padding:4px 8px;display:block}
 .seg{display:flex;gap:8px;margin-bottom:10px}
 .seg button{margin:0;min-height:44px;font-size:17px}
@@ -82,6 +84,11 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
       </div>
       <div id="reader"></div>
       <button id="camBtn" class="secondary" onclick="toggleCamera()">Start camera</button>
+      <div id="zoomBox" class="hidden">
+        <label for="zoom">Zoom in</label>
+        <input id="zoom" type="range" min="1" max="3" step="0.1" value="1">
+        <p class="small" style="margin:4px 0 0">Zoom works on most Android phones. On iPhone, move the camera closer instead.</p>
+      </div>
       <label for="manual">Or type a tool ID</label>
       <input id="manual" placeholder="e.g. TL-042" autocapitalize="characters" autocomplete="off">
       <button id="manualBtn" class="ghost" onclick="addManual()">Add tool</button>
@@ -318,6 +325,7 @@ async function startCamera(){
     }, onCode, () => {});
     camOn = true;
     $('camBtn').textContent = 'Stop camera';
+    setTimeout(setupZoom, 400); // give the camera a moment to start
   } catch (e) {
     status('Camera not available. Allow camera access in your browser, or type the tool ID below.', 'bad', 9000);
   }
@@ -330,6 +338,8 @@ async function stopCamera(){
   }
   qr = null;
   camOn = false;
+  zoomTrack = null;
+  $('zoomBox').classList.add('hidden');
   $('camBtn').textContent = 'Start camera';
 }
 
@@ -381,6 +391,42 @@ function removeItem(id){
   S.items.delete(id);
   renderLists();
 }
+
+// ---------- Camera zoom ----------
+
+let zoomTrack = null;
+
+// Uses the phone camera's own zoom, if the browser reports it. Otherwise the slider stays hidden.
+function setupZoom(){
+  const v = document.querySelector('#reader video');
+  const stream = v && v.srcObject;
+  const track = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+  const caps = track && track.getCapabilities ? track.getCapabilities() : {};
+  if (!caps.zoom) {
+    zoomTrack = null;
+    $('zoomBox').classList.add('hidden');
+    return;
+  }
+  zoomTrack = track;
+  const z = $('zoom');
+  z.min = caps.zoom.min;
+  z.max = caps.zoom.max;
+  z.step = caps.zoom.step || 0.1;
+  z.value = track.getSettings().zoom || caps.zoom.min;
+  $('zoomBox').classList.remove('hidden');
+}
+
+async function applyZoom(value){
+  touch();
+  if (!zoomTrack) return;
+  try {
+    await zoomTrack.applyConstraints({ advanced: [{ zoom: Number(value) }] });
+  } catch (e) {
+    status('Zoom is not available on this phone. Move the camera closer instead.', 'bad', 8000);
+  }
+}
+
+$('zoom').addEventListener('input', e => applyZoom(e.target.value));
 
 // ---------- Who has this tool? ----------
 
