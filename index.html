@@ -37,6 +37,13 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .toast{position:fixed;left:12px;right:12px;bottom:14px;max-width:536px;margin:0 auto;padding:14px;border-radius:10px;font-weight:bold;box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:9}
 .toast.ok{background:var(--dark);color:#fff}
 .toast.bad{background:var(--red);color:#fff}
+.seg{display:flex;gap:8px;margin-bottom:10px}
+.seg button{margin:0;min-height:44px;font-size:17px}
+.seg button.off{background:#fff;color:var(--dark);border:2px solid var(--teal)}
+.who{border:2px solid var(--teal);border-radius:10px;padding:14px;margin:12px 0;background:#fff}
+.who.late{background:#ffebee;border-color:var(--red)}
+.who.late .big,.who.late .tag{color:var(--red)}
+.who .big{font-size:22px;font-weight:bold}
 </style>
 </head>
 <body>
@@ -67,12 +74,17 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 
     <h2>Scan tools</h2>
     <div class="card">
+      <div class="seg">
+        <button id="modeAdd" onclick="setMode('add')">Add to lists</button>
+        <button id="modeWho" class="off" onclick="setMode('who')">Who has this?</button>
+      </div>
       <div id="reader"></div>
       <button id="camBtn" class="secondary" onclick="toggleCamera()">Start camera</button>
       <label for="manual">Or type a tool ID</label>
       <input id="manual" placeholder="e.g. TL-042" autocapitalize="characters" autocomplete="off">
-      <button class="ghost" onclick="addManual()">Add tool</button>
+      <button id="manualBtn" class="ghost" onclick="addManual()">Add tool</button>
     </div>
+    <div id="whoResult"></div>
 
     <h2>To check out (<span id="nOut">0</span>)</h2>
     <div id="listOut"></div>
@@ -100,6 +112,7 @@ let last = Date.now();
 let busy = false;
 let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 0;
 const pending = new Set();
+let mode = 'add'; // 'add' = add to check-out/check-in lists, 'who' = show who has the tool
 
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -185,6 +198,7 @@ function showApp(){
 async function lockOut(msg){
   await stopCamera();
   S = fresh();
+  setMode('add');
   $('app').classList.add('hidden');
   $('signin').classList.remove('hidden');
   $('signout').classList.add('hidden');
@@ -324,7 +338,7 @@ function onCode(text){
   if (id === lastId && now - lastAt < 3000) return; // ignore the same label being read again
   lastId = id;
   lastAt = now;
-  addTool(id);
+  mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
 function addManual(){
@@ -332,7 +346,7 @@ function addManual(){
   const id = $('manual').value.trim().toUpperCase();
   if (!id) return;
   $('manual').value = '';
-  addTool(id);
+  mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
 async function addTool(id){
@@ -358,6 +372,42 @@ function removeItem(id){
   touch();
   S.items.delete(id);
   renderLists();
+}
+
+// ---------- Who has this tool? ----------
+
+function setMode(m){
+  mode = m;
+  $('modeAdd').classList.toggle('off', m !== 'add');
+  $('modeWho').classList.toggle('off', m !== 'who');
+  $('manualBtn').textContent = m === 'who' ? 'Look up' : 'Add tool';
+  $('whoResult').innerHTML = '';
+}
+
+// Shows who a scanned tool is out to. Does not change the check-out or check-in lists.
+async function lookupTool(id){
+  touch();
+  if (pending.has(id)) return;
+  pending.add(id);
+  const token = S.token;
+  try {
+    const t = await api({ api: 'tool', token: token, id: id });
+    if (S.token !== token || mode !== 'who') return;
+    $('whoResult').innerHTML = t.out
+      ? '<div class="who' + (t.overdue ? ' late' : '') + '">' +
+          '<div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+          '<p style="margin:12px 0 2px"><b>Out to</b></p>' +
+          '<div class="big">' + esc(t.holder) + '</div>' +
+          '<p style="margin:12px 0 0"><b>Return by</b> ' + esc(t.due || 'no date set') + '</p>' +
+          (t.overdue ? '<p class="tag" style="font-weight:bold;margin:6px 0 0">OVERDUE</p>' : '') +
+        '</div>'
+      : '<div class="who"><div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+          '<p style="margin:10px 0 0">Available. Not out to anyone.</p></div>';
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    pending.delete(id);
+  }
 }
 
 // ---------- Lists and buttons ----------
