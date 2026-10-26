@@ -843,8 +843,7 @@ function highlightRow(id){
   if (!el) return;
   el.classList.remove('hilite');
   void el.offsetWidth;
-  el.classList.add('hilite');
-  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  el.classList.add('hilite'); // highlight only; don't scroll, so the camera stays in view
 }
 
 function rowHtml(t){
