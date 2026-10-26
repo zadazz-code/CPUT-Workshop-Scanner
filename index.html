@@ -33,6 +33,10 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .row small{color:#333;display:block;margin-top:2px}
 .row.late{background:#ffebee;border-color:var(--red)}
 .row.dueToday{background:#ffebee;border-color:#ef9a9a}
+.row.stuLate{background:#ef9a9a;border:3px solid #b71c1c}
+.row.stuLate .id,.row.stuLate small{color:#7f0000}
+.row.stuLate small{font-weight:bold}
+.stuBanner{background:#b71c1c;color:#fff;font-weight:bold;padding:12px 14px;border-radius:8px;margin:10px 0}
 #myReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px}
 .row.late .id,.row.late small{color:var(--red)}
 .row.late small{font-weight:bold}
@@ -440,14 +444,21 @@ async function showMyTools(){
 }
 
 function myToolsHtml(r){
+  // Overdue tools first, then the rest in order of return date.
+  const items = r.items.slice().sort((a, b) => (b.overdue - a.overdue));
   const head = '<h2>Hi ' + esc(r.name) + ', these are your tools</h2>';
-  if (!r.items.length) return head + '<p class="small">No tools are signed out to you.</p>';
-  return head + r.items.map(t =>
-    '<div class="row' + (t.overdue ? ' late' : t.dueToday ? ' dueToday' : '') + '"><div>' +
+  if (!items.length) return head + '<p class="small">No tools are signed out to you.</p>';
+  const late = items.filter(t => t.overdue).length;
+  const banner = late
+    ? '<div class="stuBanner">You have ' + late + ' overdue tool' + (late > 1 ? 's' : '') +
+      '. Please return ' + (late > 1 ? 'them' : 'it') + ' to the storeroom as soon as possible.</div>'
+    : '';
+  return head + banner + items.map(t =>
+    '<div class="row' + (t.overdue ? ' stuLate' : t.dueToday ? ' dueToday' : '') + '"><div>' +
     '<div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
     '<small>' + (t.overdue ? 'OVERDUE · ' : t.dueToday ? 'Due back today · ' : '') + 'Return by ' + esc(t.due) + '</small>' +
     '</div></div>').join('') +
-    '<p class="small">Tools due back today are shown in light red.</p>';
+    '<p class="small">Overdue tools are dark red and listed first. Tools due back today are light red.</p>';
 }
 
 function onCode(text){
