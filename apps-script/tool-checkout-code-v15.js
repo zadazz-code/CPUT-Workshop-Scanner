@@ -1,5 +1,6 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v14)
+// Workshop Tools - Apps Script (v15)
+// v15: staff pages header renamed to Workshop Tools. Otherwise the same as v14.
 // v14: students can see the workshop tools signed out to them (student number only).
 // v12: new QR labels contain only the tool ID (e.g. TL-042), which makes them much simpler to scan.
 // Old labels with the full web-app link still work.
@@ -32,7 +33,7 @@ function doGet(e) {
     '<body style="font-family:sans-serif;padding:12px;font-size:18px;background:' + TEAL_PALE +
     ';color:#000;margin:0">' +
     '<div style="background:' + TEAL + ';color:#fff;padding:10px 14px;border-radius:8px;margin-bottom:8px;' +
-    'font-weight:bold">Storeroom Tools</div>' + body + '</body>');
+    'font-weight:bold">Workshop Tools</div>' + body + '</body>');
 }
 
 // ---------- Start a student (batch) page ----------
