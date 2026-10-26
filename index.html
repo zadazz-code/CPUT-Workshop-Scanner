@@ -125,6 +125,7 @@ let busy = false;
 let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 0;
 const pending = new Set();
 let mode = 'add'; // 'add' = add to check-out/check-in lists, 'who' = show who has the tool
+let scanTarget = 'tool'; // 'tool' = reading tool labels, 'student' = reading a student's number QR
 
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -210,6 +211,7 @@ function showApp(){
 async function lockOut(msg){
   await stopCamera();
   S = fresh();
+  scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
   $('signin').classList.remove('hidden');
@@ -244,6 +246,7 @@ function renderStudent(){
     '<input id="stuNo" inputmode="numeric" autocomplete="off">' +
     '<label for="retDate">Return date</label>' +
     '<input id="retDate" type="date" value="' + today + '" min="' + today + '">' +
+    '<button class="secondary" onclick="scanStudent()">Scan student QR</button>' +
     '<button onclick="confirmStudent()">Confirm student</button>';
 }
 
@@ -316,6 +319,29 @@ function parseId(text){
   return null;
 }
 
+// Scans a student's QR code (their number) instead of typing it. Then confirms the student.
+async function scanStudent(){
+  touch();
+  scanTarget = 'student';
+  if (camOn) await stopCamera();
+  $('reader').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  status('Point the camera at the student QR code.');
+  startCamera();
+}
+
+async function onStudentCode(text){
+  const no = String(text || '').trim();
+  if (!/^\d{4,15}$/.test(no)) {
+    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); status('That is not a student QR code.', 'bad'); }
+    return;
+  }
+  scanTarget = 'tool';
+  stopCamera();
+  if (!$('stuNo')) return;
+  $('stuNo').value = no;
+  confirmStudent();
+}
+
 async function startCamera(){
   if (camOn) return;
   if (typeof Html5Qrcode === 'undefined') {
@@ -351,11 +377,13 @@ async function stopCamera(){
 
 function toggleCamera(){
   touch();
+  scanTarget = 'tool';
   camOn ? stopCamera() : startCamera();
 }
 
 function onCode(text){
   touch();
+  if (scanTarget === 'student') return onStudentCode(text);
   const id = parseId(text);
   if (!id) return status('That QR code is not a storeroom tool.', 'bad');
   const now = Date.now();
