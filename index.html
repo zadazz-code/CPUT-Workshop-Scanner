@@ -63,7 +63,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 <body>
 <header>
   <span class="brand"><img class="logo" src="logo.png" alt="Product and Industrial Design"><span>Storeroom Scanner</span></span>
-  <button id="staffBtn" class="ghost" onclick="openStaffSignIn()">Staff sign in</button>
+  <button id="staffBtn" class="ghost" onclick="toggleStaffView()">Staff sign in</button>
   <button id="signout" class="ghost hidden" onclick="lockOut('Signed out.')">Sign out</button>
 </header>
 
@@ -87,7 +87,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
       <label for="pin">Your PIN</label>
       <input id="pin" type="password" inputmode="numeric" autocomplete="off">
       <button id="signinBtn" onclick="signIn()">Sign in</button>
-      <button class="ghost" onclick="closeStaffSignIn()">Cancel</button>
+      <button class="ghost" onclick="showStaffView(false)">Cancel</button>
       <p class="small">Your PIN is used only to sign in. You are signed out after 10 minutes without activity.</p>
     </div>
   </section>
@@ -209,15 +209,22 @@ document.addEventListener('visibilitychange', () => {
 
 // ---------- Sign in / out ----------
 
-function openStaffSignIn(){
-  $('signin').classList.remove('hidden');
-  $('signin').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  $('pin').focus();
+// Switches the first screen between the student view and the staff sign-in.
+// The top-right button toggles between "Staff sign in" and "Students".
+function showStaffView(on){
+  $('signin').classList.toggle('hidden', !on);
+  $('studentIn').classList.toggle('hidden', on);
+  $('myResult').classList.toggle('hidden', on);
+  $('staffBtn').textContent = on ? 'Students' : 'Staff sign in';
+  if (on) {
+    $('pin').focus();
+  } else {
+    $('pin').value = '';
+  }
 }
 
-function closeStaffSignIn(){
-  $('pin').value = '';
-  $('signin').classList.add('hidden');
+function toggleStaffView(){
+  showStaffView($('signin').classList.contains('hidden'));
 }
 
 async function signIn(){
@@ -258,9 +265,8 @@ async function lockOut(msg){
   scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
-  $('signin').classList.add('hidden');
+  showStaffView(false);
   $('staffBtn').classList.remove('hidden');
-  $('studentIn').classList.remove('hidden');
   $('signout').classList.add('hidden');
   if (msg) status(msg, 'bad', 9000);
 }
