@@ -687,6 +687,9 @@ function addManual(){
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && e.target && e.target.id === 'stuNo') { e.preventDefault(); confirmStudent(); }
 });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'pin') { e.preventDefault(); signIn(); }
+});
 
 // Enter adds the typed tool and keeps the cursor in the box, so the next number can be typed straight away.
 $('manual').addEventListener('keydown', e => {
