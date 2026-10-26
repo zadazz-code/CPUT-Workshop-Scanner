@@ -100,6 +100,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 
     <h2>Out to this student (<span id="nHold">0</span>)</h2>
     <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
+    <button id="btnHoldIn" class="secondary" onclick="checkInHolding()" disabled>Check in selected</button>
 
     <h2>Scan tools</h2>
     <div class="card">
@@ -327,11 +328,44 @@ function renderHolding(items){
   $('nHold').textContent = items.length;
   $('listHold').innerHTML = items.length
     ? items.map(t =>
-        '<div class="row' + (t.overdue ? ' late' : '') + '"><div>' +
-        '<div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
-        '<small>' + (t.overdue ? 'OVERDUE · ' : '') + 'Return by ' + esc(t.due) + '</small>' +
-        '</div></div>').join('')
+        '<label class="row' + (t.overdue ? ' late' : '') + '">' +
+        '<input type="checkbox" class="hold" value="' + esc(t.id) + '" onchange="updateHoldBtn()" ' +
+        'style="transform:scale(1.6);margin-right:14px;flex:none">' +
+        '<div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+        '<small>' + (t.overdue ? 'OVERDUE · ' : '') + 'Return by ' + esc(t.due) + '</small></div>' +
+        '</label>').join('')
     : '<p class="small">No tools are out to this student.</p>';
+  updateHoldBtn();
+}
+
+function updateHoldBtn(){
+  const n = document.querySelectorAll('input.hold:checked').length;
+  $('btnHoldIn').textContent = n ? 'Check in selected (' + n + ')' : 'Check in selected';
+  $('btnHoldIn').disabled = busy || !n;
+}
+
+// Checks in the ticked tools from the student's list.
+async function checkInHolding(){
+  touch();
+  const ids = Array.prototype.map.call(document.querySelectorAll('input.hold:checked'), c => c.value);
+  if (!ids.length) return;
+  const token = S.token;
+  busy = true; updateHoldBtn();
+  try {
+    const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
+    if (S.token !== token) return;
+    r.done.forEach(id => S.items.delete(id));
+    r.notOut.forEach(id => S.items.delete(id));
+    let msg = 'Checked in ' + r.done.length + '.';
+    if (r.notOut.length) msg += ' Already in: ' + r.notOut.join(', ') + '.';
+    status(msg, r.notOut.length ? 'bad' : 'ok', 8000);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    busy = false;
+    renderLists();
+    loadHolding();
+  }
 }
 
 async function confirmStudent(){
