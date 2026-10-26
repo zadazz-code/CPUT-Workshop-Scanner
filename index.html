@@ -159,6 +159,7 @@ let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 
 const pending = new Set();
 let mode = 'add'; // 'add' = add to check-out/check-in lists, 'who' = show who has the tool
 let scanTarget = 'tool'; // 'tool' = reading tool labels, 'student' = staff reading a student's number QR, 'mystudent' = a student reading their own card
+const studentCache = new Map(); // students confirmed this sign-in, so repeat numbers don't wait for the server
 
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -266,6 +267,7 @@ function showApp(){
 async function lockOut(msg){
   await stopCamera();
   S = fresh();
+  studentCache.clear();
   scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
@@ -358,7 +360,10 @@ async function checkInHolding(){
   const ids = Array.prototype.map.call(document.querySelectorAll('input.hold:checked'), c => c.value);
   if (!ids.length) return;
   const token = S.token;
+  // Remove the ticked rows straight away; the list is reloaded from the server afterwards either way.
+  document.querySelectorAll('input.hold:checked').forEach(c => c.closest('label').remove());
   busy = true; updateHoldBtn();
+  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
     if (S.token !== token) return;
@@ -380,10 +385,20 @@ async function confirmStudent(){
   touch();
   const no = $('stuNo').value.trim();
   if (!no) return status('Enter the student number.', 'bad');
+  const cached = studentCache.get(no);
+  if (cached) {
+    S.student = { no: no, holder: cached.holder, year: cached.year };
+    status('Student confirmed: ' + cached.holder + (cached.year ? ' (' + cached.year + ')' : ''));
+    renderStudent();
+    renderLists();
+    loadHolding();
+    return;
+  }
   const token = S.token;
   try {
     const r = await api({ api: 'student', token: token, no: no });
     if (S.token !== token) return;
+    studentCache.set(no, { holder: r.holder, year: r.year || '' });
     S.student = { no: no, holder: r.holder, year: r.year || '' };
     status('Student confirmed: ' + r.holder + (r.year ? ' (' + r.year + ')' : ''));
     renderStudent();
@@ -425,12 +440,38 @@ async function onStudentCode(text){
   }
   scanTarget = 'tool';
   stopCamera();
+  feedback(true);
   if (!$('stuNo')) return;
   $('stuNo').value = no;
   confirmStudent();
 }
 
+// Scan feedback: a short beep and a vibration when a label is read or refused.
+// The audio is unlocked on a tap (Start camera), because phones block sound otherwise.
+let audioCtx = null;
+function unlockAudio(){
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+}
+function beep(freq, ms){
+  try {
+    if (!audioCtx) return;
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.frequency.value = freq;
+    g.gain.value = 0.2;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + ms / 1000);
+  } catch (e) {}
+}
+function feedback(ok){
+  if (navigator.vibrate) navigator.vibrate(ok ? 60 : [120, 80, 120]);
+  beep(ok ? 1000 : 300, ok ? 90 : 300);
+}
+
 async function startCamera(elId = 'reader'){
+  unlockAudio();
   if (camOn) return;
   if (typeof Html5Qrcode === 'undefined') {
     return status('The scanner did not load. Check the internet connection, or type the tool ID.', 'bad', 9000);
@@ -489,6 +530,7 @@ function onMyCode(text){
   }
   scanTarget = 'tool';
   stopCamera();
+  feedback(true);
   $('myNo').value = no;
   status('Student number read. Tap Show my tools.');
 }
@@ -530,11 +572,12 @@ function onCode(text){
   if (scanTarget === 'mystudent') return onMyCode(text);
   if (scanTarget === 'student') return onStudentCode(text);
   const id = parseId(text);
-  if (!id) return status('That QR code is not a storeroom tool.', 'bad');
+  if (!id) { feedback(false); return status('That QR code is not a storeroom tool.', 'bad'); }
   const now = Date.now();
   if (id === lastId && now - lastAt < 3000) return; // ignore the same label being read again
   lastId = id;
   lastAt = now;
+  feedback(true);
   mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
@@ -693,17 +736,20 @@ async function checkOut(){
   const ret = $('retDate').value;
   if (!ret) return status('Choose the return date first.', 'bad');
   const token = S.token;
+  // Clear the rows straight away; they come back only if the server refuses them.
+  const removed = ids.map(id => S.items.get(id)).filter(Boolean);
+  ids.forEach(id => S.items.delete(id));
   busy = true; renderLists();
+  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkout', token: token, ids: ids.join(','), no: S.student.no, ret: ret });
     if (S.token !== token) return;
-    r.done.forEach(id => S.items.delete(id));
-    r.taken.forEach(id => S.items.delete(id));
     let msg = 'Checked out ' + r.done.length + ' to ' + r.holder + ', return by ' + r.returnBy + '.';
     if (r.taken.length) msg += ' Not checked out (already out or unknown): ' + r.taken.join(', ') + '.';
     status(msg, r.taken.length ? 'bad' : 'ok', 10000);
     loadHolding();
   } catch (e) {
+    if (S.token === token) removed.forEach(t => S.items.set(t.id, t));
     handleErr(e);
   } finally {
     busy = false;
@@ -716,17 +762,19 @@ async function checkIn(){
   const ids = [...S.items.values()].filter(t => !t.pending && t.out).map(t => t.id);
   if (!ids.length) return;
   const token = S.token;
+  const removed = ids.map(id => S.items.get(id)).filter(Boolean);
+  ids.forEach(id => S.items.delete(id));
   busy = true; renderLists();
+  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
     if (S.token !== token) return;
-    r.done.forEach(id => S.items.delete(id));
-    r.notOut.forEach(id => S.items.delete(id));
     let msg = 'Checked in ' + r.done.length + '.';
     if (r.notOut.length) msg += ' Already in: ' + r.notOut.join(', ') + '.';
     status(msg, r.notOut.length ? 'bad' : 'ok', 10000);
     loadHolding();
   } catch (e) {
+    if (S.token === token) removed.forEach(t => S.items.set(t.id, t));
     handleErr(e);
   } finally {
     busy = false;
