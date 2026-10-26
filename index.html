@@ -673,10 +673,16 @@ function addManual(){
   const id = normaliseId($('manual').value);
   if (!id) return;
   $('manual').value = '';
+  $('manual').focus(); // keep the cursor in the box for the next number
   mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
 // The tool appears in the list straight away as "Checking…", then fills in when the server replies.
+// Enter adds the typed tool and keeps the cursor in the box, so the next number can be typed straight away.
+$('manual').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addManual(); }
+});
+
 async function addTool(id){
   touch();
   if (S.items.has(id)) return status(id + ' is already in the list.', 'bad');
