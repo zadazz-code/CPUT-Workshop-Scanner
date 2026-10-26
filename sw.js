@@ -1,7 +1,7 @@
 // Caches the app shell so the page opens from the home screen even with a weak signal.
 // Only same-origin files are cached. Apps Script responses are never cached.
-const CACHE = 'storeroom-scanner-v2';
-const SHELL = ['./', './index.html', './manifest.json', './logo.png', './guide.html', './fonts/UniNeueBook.otf', './fonts/UniNeueBold.otf', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'storeroom-scanner-v3';
+const SHELL = ['./', './index.html', './manifest.json', './logo.png', './guide.html', './apple-touch-icon.png', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
