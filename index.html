@@ -91,8 +91,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
       <input id="myNo" inputmode="numeric" autocomplete="off">
       <button class="secondary" onclick="scanMyNumber()">Scan student card</button>
       <div id="myReader" class="hidden"></div>
-      <button onclick="showMyTools()">Show my tools</button>
-      <p class="small">Shows the workshop tools signed out to you and when they are due back.</p>
+      <p class="small">Scan your card or type your number. Your tools and return dates appear below.</p>
     </div>
     <div id="myResult"></div>
   </section>
@@ -594,22 +593,34 @@ function onMyCode(text){
   stopCamera();
   feedback(true, 'Student card read');
   $('myNo').value = no;
-  status('Student number read. Tap Show my tools.');
+  showMyTools(true);
 }
 
-async function showMyTools(){
+// Loads a student's tools. Runs by itself after a card scan, or once a typed number is complete.
+// "auto" lookups stay quiet if the number isn't found yet, so partial numbers don't show errors.
+async function showMyTools(auto = false){
   touch();
   const no = $('myNo').value.trim();
-  if (!no) return status('Enter your student number.', 'bad');
+  if (!no) { $('myResult').innerHTML = ''; return; }
+  if (!auto && !/^\d{4,15}$/.test(no)) return status('Enter your student number.', 'bad');
   $('myResult').innerHTML = '<p class="small">Checking…</p>';
   try {
     const r = await api({ api: 'mytools', no: no });
-    $('myResult').innerHTML = myToolsHtml(r);
+    if ($('myNo').value.trim() === no) $('myResult').innerHTML = myToolsHtml(r);
   } catch (e) {
+    if ($('myNo').value.trim() !== no) return;
     $('myResult').innerHTML = '';
-    status(e.message, 'bad', 9000);
+    if (!auto) status(e.message, 'bad', 9000);
   }
 }
+
+// Typing: once the number looks complete, wait briefly and then load the tools.
+let myTimer = null;
+$('myNo').addEventListener('input', () => {
+  clearTimeout(myTimer);
+  if (!/^\d{4,15}$/.test($('myNo').value.trim())) { $('myResult').innerHTML = ''; return; }
+  myTimer = setTimeout(() => showMyTools(true), 600);
+});
 
 function myToolsHtml(r){
   // Overdue tools first, then the rest in order of return date.
