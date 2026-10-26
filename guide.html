@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Workshop Tools Guide</title>
+<style>
+/* Layout: one column, large type, every step on its own line, so it reads at a glance at the storeroom counter. */
+:root{
+  --bg:#f6f8f7; --fg:#1b2a27; --muted:#4f625d; --accent:#00897b; --accent-dark:#00473f;
+  --card:#ffffff; --line:#b9cbc6; --good:#2e7d32; --bad:#c62828; --due:#ffebee; --late:#ef9a9a; --late-ink:#7f0000;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1a18; --fg:#e7efed; --muted:#9db3ad; --accent:#4db6ac; --accent-dark:#80cbc4;
+    --card:#17231f; --line:#2f4541; --good:#66bb6a; --bad:#ef5350; --due:#3a1d1f; --late:#6d2a2c; --late-ink:#ffcdd2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1a18; --fg:#e7efed; --muted:#9db3ad; --accent:#4db6ac; --accent-dark:#80cbc4;
+  --card:#17231f; --line:#2f4541; --good:#66bb6a; --bad:#ef5350; --due:#3a1d1f; --late:#6d2a2c; --late-ink:#ffcdd2;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+main{max-width:640px;margin:0 auto}
+header{border-bottom:3px solid var(--accent);padding-bottom:12px;margin-bottom:8px}
+h1{font-size:30px;line-height:1.15;margin:0 0 6px;text-wrap:balance}
+h2{font-size:23px;margin:36px 0 8px;color:var(--accent-dark);text-wrap:balance}
+h3{font-size:19px;margin:22px 0 4px}
+p{margin:8px 0}
+.lead{color:var(--muted);margin:4px 0 0}
+ol{padding-left:0;list-style:none;counter-reset:s;margin:12px 0}
+ol li{counter-increment:s;position:relative;padding:10px 0 10px 52px;border-top:1px solid var(--line)}
+ol li:last-child{border-bottom:1px solid var(--line)}
+ol li::before{content:counter(s);position:absolute;left:0;top:10px;width:36px;height:36px;border:2px solid var(--accent);
+  border-radius:50%;display:grid;place-items:center;font-weight:700;color:var(--accent-dark)}
+.figs{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}
+figure{margin:0;flex:1 1 150px;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 10px 10px;text-align:center}
+figure svg{width:100%;max-width:160px;height:auto;color:var(--accent);display:block;margin:0 auto}
+figcaption{font-size:15px;color:var(--muted);margin-top:6px}
+.key{display:grid;gap:10px;margin:12px 0}
+.key div{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.sw{flex:none;width:44px;height:30px;border-radius:6px;border:2px solid var(--line)}
+.sw.good{background:var(--good);border-color:var(--good)}
+.sw.bad{background:var(--bad);border-color:var(--bad)}
+.sw.due{background:var(--due);border-color:var(--late)}
+.sw.late{background:var(--late);border-color:var(--bad)}
+.sw.picked{background:#c8e6c9;border-color:#2e7d32}
+.note{background:var(--card);border-left:6px solid var(--accent);border-radius:8px;padding:12px 14px;margin:16px 0}
+.warn{border-left-color:var(--bad)}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
+td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.wrap{overflow-x:auto}
+kbd{font:600 16px ui-monospace,Menlo,Consolas,monospace;border:2px solid var(--line);border-radius:6px;padding:0 6px;background:var(--card)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<main>
+
+<header>
+  <h1>Workshop Tools Guide</h1>
+  <p class="lead">How to check tools out and in, and how to find out who has a tool. For workshop staff.</p>
+</header>
+
+<h2>What you need</h2>
+<p>Your phone, your staff PIN, and the Workshop Tools app. Open it from the home-screen icon, or from the link you were given.</p>
+
+<figure style="max-width:320px;margin:14px 0">
+  <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="54" y="8" width="52" height="94" rx="8"/>
+    <line x1="72" y1="18" x2="88" y2="18"/>
+    <rect x="62" y="30" width="36" height="36"/>
+    <path d="M68 36h6v6h-6zM80 36h6v6h-6zM68 48h6v6h-6zM80 54h8"/>
+    <line x1="66" y1="84" x2="94" y2="84"/>
+  </svg>
+  <figcaption>Your phone</figcaption>
+</figure>
+
+<h2>Staff sign in</h2>
+<ol>
+  <li>Tap <b>Staff sign in</b> at the top right.</li>
+  <li>Type your PIN and tap <b>Sign in</b>.</li>
+  <li>Your name appears at the top. The app signs you out after 10 minutes without touching the screen, so sign out when you leave.</li>
+</ol>
+<p>To go back to the student screen, tap <b>Student sign in</b> at the top right.</p>
+
+<h2>Check a tool out to a student</h2>
+<div class="figs">
+  <figure>
+    <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="12" y="46" width="34" height="28" rx="3"/>
+      <path d="M12 56h34"/>
+      <path d="M58 60h38"/><path d="M88 52l8 8-8 8"/>
+      <circle cx="124" cy="36" r="10"/>
+      <path d="M108 86c2-14 30-14 32 0"/>
+    </svg>
+    <figcaption>Tool goes to the student</figcaption>
+  </figure>
+</div>
+<ol>
+  <li><b>Student.</b> Tap <b>Scan student QR</b> and point the camera at the student card. Or type the student number. The student's name appears. Tap <b>Confirm student</b> if you typed it.</li>
+  <li><b>Tool.</b> Point the camera at the tool's QR label. The tool appears under <b>To check out</b>. If the label is damaged, tap the box, type the number (for example <kbd>42</kbd> for TL-042) and tap <b>Add tool</b>.</li>
+  <li><b>Repeat</b> step 2 for each tool. Each one is added to the list.</li>
+  <li><b>Return date.</b> The date is today. Change it only if the tools are due back on another day.</li>
+  <li>Tap <b>Check out</b>. Read the summary and tap <b>Confirm</b>.</li>
+</ol>
+<div class="note">The list clears straight away. A short message appears at the bottom with an <b>Undo</b> button. See <i>Undo a mistake</i> below.</div>
+
+<h2>Check a tool back in</h2>
+<div class="figs">
+  <figure>
+    <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="36" cy="36" r="10"/>
+      <path d="M20 86c2-14 30-14 32 0"/>
+      <path d="M62 60h38"/><path d="M72 52l-8 8 8 8"/>
+      <rect x="106" y="46" width="34" height="28" rx="3"/>
+      <path d="M106 56h34"/>
+    </svg>
+    <figcaption>Tool comes back in</figcaption>
+  </figure>
+</div>
+<h3>Option A: scan the tool</h3>
+<ol>
+  <li>Scan the tool's QR label, or type its number.</li>
+  <li>The tool appears under <b>To check in</b>. Tap <b>Check in</b>, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+<h3>Option B: from the student's list</h3>
+<ol>
+  <li>Confirm the student. Their tools appear under <b>Out to this student</b>.</li>
+  <li>Tap each tool that has come back. Its row turns green. Tap again to unselect it.</li>
+  <li>Tap <b>Check in selected</b>, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+
+<h2>Find out who has a tool</h2>
+<ol>
+  <li>Tap <b>Who has this?</b> above the scan box.</li>
+  <li>Scan the tool's label, or type its number.</li>
+  <li>A card shows who the tool is out to, the year, and the return date. An available tool says <i>Not out to anyone</i>.</li>
+  <li>Tap <b>Add to lists</b> to go back to checking tools out and in.</li>
+</ol>
+<p>Looking up a tool does not change anything.</p>
+
+<h2>Scan feedback</h2>
+<p>Every scan gives a clear response, so you don't have to look at the list to know it worked.</p>
+<div class="figs">
+  <figure>
+    <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="80" cy="55" r="38"/><path d="M62 56l13 13 24-26"/>
+    </svg>
+    <figcaption>Good scan: a green tick flashes</figcaption>
+  </figure>
+  <figure>
+    <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="80" cy="55" r="38"/><path d="M66 42l28 28M94 42l-28 28"/>
+    </svg>
+    <figcaption>Problem: a red cross flashes</figcaption>
+  </figure>
+</div>
+<p>The tool's row also flashes green in the list. A beep and vibration sound on Android phones. iPhones show the flash only.</p>
+
+<h2>What the colours mean</h2>
+<div class="key">
+  <div><span class="sw good"></span><span><b>Green flash:</b> the scan worked.</span></div>
+  <div><span class="sw bad"></span><span><b>Red flash:</b> the label isn't a storeroom tool, or the tool can't be found.</span></div>
+  <div><span class="sw due"></span><span><b>Light red row:</b> due back today.</span></div>
+  <div><span class="sw late"></span><span><b>Dark red row:</b> overdue. Shown first in the student's list, with a banner.</span></div>
+  <div><span class="sw picked"></span><span><b>Green row:</b> selected for check-in.</span></div>
+</div>
+
+<h2>Undo a mistake</h2>
+<ol>
+  <li>After a save, a message appears at the bottom with an <b>Undo</b> button. It stays for about 10 seconds.</li>
+  <li>Tap <b>Undo</b> to reverse the save. Tools checked out come back in. Tools checked in are signed out to the same student again.</li>
+</ol>
+<p>Only the most recent save can be undone. If you refresh the page or sign out, the undo is lost, so check the Log sheet instead.</p>
+
+<h2>Students: see your own tools</h2>
+<p>Students don't need a PIN. On the first screen they:</p>
+<ol>
+  <li>Scan their student card, or type their student number.</li>
+  <li>Their workshop tools and return dates appear straight away. Overdue tools are dark red and listed first.</li>
+</ol>
+<p>Students see only their own tools and return dates. Staff don't need to do anything for this.</p>
+
+<h2>If something goes wrong</h2>
+<div class="wrap">
+<table>
+  <tr><th>What you see</th><th>What to do</th></tr>
+  <tr><td>The camera won't start</td><td>Allow camera access when the phone asks. Check that no other app is using the camera.</td></tr>
+  <tr><td>The image is too small or blurry</td><td>On Android, drag the <b>Zoom in</b> slider. On iPhone, move the phone closer to the label, about 15 to 20 cm away.</td></tr>
+  <tr><td>"That QR code is not a storeroom tool"</td><td>The label may be damaged or from another item. Type the number instead.</td></tr>
+  <tr><td>"Tool is already out"</td><td>Someone has already checked it out. Use <b>Who has this?</b> to find out who.</td></tr>
+  <tr><td>"Session expired. Sign in again."</td><td>You were inactive for 10 minutes. Sign in again. Your list may be empty, so check what you had before.</td></tr>
+  <tr><td>"Could not reach the storeroom server"</td><td>There is no signal or Wi-Fi. Wait a moment and try again. Nothing is saved until the server answers.</td></tr>
+  <tr><td>"Student number not found"</td><td>Check the number on the student card. Ask the lecturer to add the student if they are missing.</td></tr>
+</table>
+</div>
+
+<div class="note warn">
+  <b>Keep your PIN private.</b> Don't share it, and sign out when you leave the storeroom.
+</div>
+
+</main>
+
+</body>
+</html>
