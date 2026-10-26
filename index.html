@@ -98,6 +98,13 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
     </div>
     <div id="whoResult"></div>
 
+    <h2>Return date</h2>
+    <div class="card">
+      <label for="retDate">Return by</label>
+      <input id="retDate" type="date">
+      <p class="small">Set to today. Change it if the tool is due back on another day.</p>
+    </div>
+
     <h2>To check out (<span id="nOut">0</span>)</h2>
     <div id="listOut"></div>
     <p id="outHint" class="small"></p>
@@ -204,6 +211,7 @@ function showApp(){
   $('app').classList.remove('hidden');
   $('signout').classList.remove('hidden');
   $('who').textContent = 'Signed in as ' + S.name + '. Signs out after 10 minutes without activity.';
+  $('retDate').value = todayStr();
   renderStudent();
   renderLists();
 }
@@ -236,16 +244,12 @@ function renderStudent(){
     box.innerHTML =
       '<div style="font-weight:bold">' + esc(S.student.holder) +
         (S.student.year ? ' <span style="font-weight:normal">· ' + esc(S.student.year) + '</span>' : '') + '</div>' +
-      '<div class="small">Return by ' + esc(fmtDate(S.student.ret)) + '</div>' +
       '<button class="ghost" onclick="changeStudent()">Change student</button>';
     return;
   }
-  const today = todayStr();
   box.innerHTML =
     '<label for="stuNo">Student number</label>' +
     '<input id="stuNo" inputmode="numeric" autocomplete="off">' +
-    '<label for="retDate">Return date</label>' +
-    '<input id="retDate" type="date" value="' + today + '" min="' + today + '">' +
     '<button class="secondary" onclick="scanStudent()">Scan student QR</button>' +
     '<button onclick="confirmStudent()">Confirm student</button>';
 }
@@ -289,14 +293,12 @@ function renderHolding(items){
 async function confirmStudent(){
   touch();
   const no = $('stuNo').value.trim();
-  const ret = $('retDate').value;
   if (!no) return status('Enter the student number.', 'bad');
-  if (!ret) return status('Enter the return date.', 'bad');
   const token = S.token;
   try {
     const r = await api({ api: 'student', token: token, no: no });
     if (S.token !== token) return;
-    S.student = { no: no, holder: r.holder, ret: ret, year: r.year || '' };
+    S.student = { no: no, holder: r.holder, year: r.year || '' };
     status('Student confirmed: ' + r.holder + (r.year ? ' (' + r.year + ')' : ''));
     renderStudent();
     renderLists();
@@ -545,10 +547,12 @@ async function checkOut(){
   touch();
   const ids = [...S.items.values()].filter(t => !t.pending && !t.out).map(t => t.id);
   if (!ids.length || !S.student) return;
+  const ret = $('retDate').value;
+  if (!ret) return status('Choose the return date first.', 'bad');
   const token = S.token;
   busy = true; renderLists();
   try {
-    const r = await api({ api: 'checkout', token: token, ids: ids.join(','), no: S.student.no, ret: S.student.ret });
+    const r = await api({ api: 'checkout', token: token, ids: ids.join(','), no: S.student.no, ret: ret });
     if (S.token !== token) return;
     r.done.forEach(id => S.items.delete(id));
     r.taken.forEach(id => S.items.delete(id));
