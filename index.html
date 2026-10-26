@@ -41,7 +41,7 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 #listHold .row{cursor:pointer;user-select:none}
 #listHold .row.picked{background:#c8e6c9;border-color:#2e7d32}
 #listHold .row.picked .id,#listHold .row.picked small{color:#1b5e20}
-#myReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px}
+#myReader,#stuReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px}
 .row.late .id,.row.late small{color:var(--red)}
 .row.late small{font-weight:bold}
 #reader{width:100%;border-radius:8px;overflow:hidden;background:#000}
@@ -112,6 +112,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 
     <h2>Student</h2>
     <div class="card" id="studentBox"></div>
+    <div id="stuReader" class="hidden"></div>
 
     <h2>Out to this student (<span id="nHold">0</span>)</h2>
     <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
@@ -468,14 +469,17 @@ function parseId(text){
   return null;
 }
 
-// Scans a student's QR code (their number) instead of typing it. Then confirms the student.
+// Scans a student's QR code (their number) in its own small camera window under the student box.
+// The window closes by itself once the card is read. Tapping the button again cancels.
 async function scanStudent(){
   touch();
-  scanTarget = 'student';
+  if (scanTarget === 'student' && camOn) { stopCamera(); return; }
   if (camOn) await stopCamera();
-  $('reader').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  scanTarget = 'student';
+  $('stuReader').classList.remove('hidden');
+  $('stuReader').scrollIntoView({ behavior: 'smooth', block: 'center' });
   status('Point the camera at the student QR code.');
-  startCamera();
+  startCamera('stuReader');
 }
 
 async function onStudentCode(text){
@@ -563,6 +567,7 @@ async function stopCamera(){
   zoomTrack = null;
   $('zoomBox').classList.add('hidden');
   $('myReader').classList.add('hidden');
+  $('stuReader').classList.add('hidden');
   $('camBtn').textContent = 'Start camera';
 }
 
