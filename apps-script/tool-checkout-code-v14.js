@@ -1,6 +1,6 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v13)
-// v13: students can see their own tools (student number AND surname must match).
+// Tool Storeroom - Apps Script (v14)
+// v14: students can see the workshop tools signed out to them (student number only).
 // v12: new QR labels contain only the tool ID (e.g. TL-042), which makes them much simpler to scan.
 // Old labels with the full web-app link still work.
 // Students sheet: A = StudentNo, B = Name, C = Surname, D = Year.
@@ -455,7 +455,7 @@ function apiRoute(p) {
     case 'student':  return apiStudent(p.token, p.no);
     case 'tool':     return apiTool(p.token, p.id);
     case 'holding':  return apiHolding(p.token, p.no);
-    case 'mytools':  return apiMyTools(p.no, p.surname);
+    case 'mytools':  return apiMyTools(p.no);
     case 'checkout': return apiCheckout(p.token, ids, p.no, p.ret);
     case 'checkin':  return apiCheckin(p.token, ids);
     default: throw new Error('Unknown request');
@@ -528,14 +528,10 @@ function apiHolding(token, no) {
   return { items: items };
 }
 
-// Student self-service: a student's own tools. Student number AND surname must both match.
-// The same message is given for either mistake, so the list cannot be browsed by number alone.
-function apiMyTools(no, surname) {
+// Student self-service: the workshop tools signed out to this student, with return dates.
+function apiMyTools(no) {
   const r = studentRow(no);
-  const typed = String(surname || '').trim().toLowerCase();
-  if (!r || !typed || String(r[2]).trim().toLowerCase() !== typed) {
-    throw new Error('We could not find a match. Check your student number and surname.');
-  }
+  if (!r) throw new Error('Student number not found.');
   const holder = studentLookup(no);
   const tz = Session.getScriptTimeZone();
   const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');

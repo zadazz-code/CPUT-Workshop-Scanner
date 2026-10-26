@@ -67,12 +67,10 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
     <div class="card">
       <label for="myNo">Student number</label>
       <input id="myNo" inputmode="numeric" autocomplete="off">
-      <label for="mySurname">Surname</label>
-      <input id="mySurname" autocomplete="off" autocapitalize="words">
       <button class="secondary" onclick="scanMyNumber()">Scan student card</button>
       <div id="myReader" class="hidden"></div>
       <button onclick="showMyTools()">Show my tools</button>
-      <p class="small">Enter both your student number and surname. This keeps your details private.</p>
+      <p class="small">Shows the workshop tools signed out to you and when they are due back.</p>
     </div>
     <div id="myResult"></div>
   </section>
@@ -424,18 +422,16 @@ function onMyCode(text){
   scanTarget = 'tool';
   stopCamera();
   $('myNo').value = no;
-  $('mySurname').focus();
-  status('Student number read. Type your surname, then tap Show my tools.');
+  status('Student number read. Tap Show my tools.');
 }
 
 async function showMyTools(){
   touch();
   const no = $('myNo').value.trim();
-  const surname = $('mySurname').value.trim();
-  if (!no || !surname) return status('Enter your student number and surname.', 'bad');
+  if (!no) return status('Enter your student number.', 'bad');
   $('myResult').innerHTML = '<p class="small">Checking…</p>';
   try {
-    const r = await api({ api: 'mytools', no: no, surname: surname });
+    const r = await api({ api: 'mytools', no: no });
     $('myResult').innerHTML = myToolsHtml(r);
   } catch (e) {
     $('myResult').innerHTML = '';
