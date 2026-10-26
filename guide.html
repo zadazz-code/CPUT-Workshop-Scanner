@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;500&display=swap">
 <title>Workshop Tools Guide</title>
 <style>
 /* Layout: one column, large type, every step on its own line, so it reads at a glance at the storeroom counter. */
@@ -26,7 +26,11 @@
   color-scheme: dark;
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.55 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+html,body{font-weight:300}
+input,select,textarea{font-weight:300}
+b,strong,h1,h2,h3,h4,label,button,th,.id,[style*="font-weight:bold"]{font-weight:500 !important}
+
+body{margin:0;background:var(--bg);color:var(--fg);font:300 18px/1.55 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 main{max-width:640px;margin:0 auto}
 header{border-bottom:3px solid var(--accent);padding-bottom:12px;margin-bottom:8px}
