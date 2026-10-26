@@ -1,5 +1,6 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v12)
+// Tool Storeroom - Apps Script (v13)
+// v13: students can see their own tools (student number AND surname must match).
 // v12: new QR labels contain only the tool ID (e.g. TL-042), which makes them much simpler to scan.
 // Old labels with the full web-app link still work.
 // Students sheet: A = StudentNo, B = Name, C = Surname, D = Year.
@@ -454,6 +455,7 @@ function apiRoute(p) {
     case 'student':  return apiStudent(p.token, p.no);
     case 'tool':     return apiTool(p.token, p.id);
     case 'holding':  return apiHolding(p.token, p.no);
+    case 'mytools':  return apiMyTools(p.no, p.surname);
     case 'checkout': return apiCheckout(p.token, ids, p.no, p.ret);
     case 'checkin':  return apiCheckin(p.token, ids);
     default: throw new Error('Unknown request');
@@ -524,6 +526,37 @@ function apiHolding(token, no) {
     .sort((a, b) => a.dueTime - b.dueTime)
     .map(({ dueTime, ...rest }) => rest);
   return { items: items };
+}
+
+// Student self-service: a student's own tools. Student number AND surname must both match.
+// The same message is given for either mistake, so the list cannot be browsed by number alone.
+function apiMyTools(no, surname) {
+  const r = studentRow(no);
+  const typed = String(surname || '').trim().toLowerCase();
+  if (!r || !typed || String(r[2]).trim().toLowerCase() !== typed) {
+    throw new Error('We could not find a match. Check your student number and surname.');
+  }
+  const holder = studentLookup(no);
+  const tz = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const now = new Date();
+  const rows = SpreadsheetApp.getActive().getSheetByName(TOOLS).getDataRange().getValues();
+  const items = rows.slice(1)
+    .filter(t => String(t[0]).trim() !== '' && t[4] === 'Out' && String(t[5]) === holder)
+    .map(t => {
+      const due = t[7] ? new Date(t[7]) : null;
+      return {
+        id: String(t[0]),
+        name: String(t[1]),
+        due: due ? fmt(due) : 'No date set',
+        dueTime: due ? due.getTime() : Infinity,
+        dueToday: !!due && Utilities.formatDate(due, tz, 'yyyy-MM-dd') === today,
+        overdue: !!due && due < now
+      };
+    })
+    .sort((a, b) => a.dueTime - b.dueTime)
+    .map(({ dueTime, ...rest }) => rest);
+  return { name: String(r[1]).trim(), items: items };
 }
 
 // Student and return date are passed on every call, so no 30-minute batch timer is involved.

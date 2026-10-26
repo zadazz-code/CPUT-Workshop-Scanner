@@ -32,6 +32,8 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .row .id{font-weight:bold}
 .row small{color:#333;display:block;margin-top:2px}
 .row.late{background:#ffebee;border-color:var(--red)}
+.row.dueToday{background:#ffebee;border-color:#ef9a9a}
+#myReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px}
 .row.late .id,.row.late small{color:var(--red)}
 .row.late small{font-weight:bold}
 #reader{width:100%;border-radius:8px;overflow:hidden;background:#000}
@@ -60,6 +62,21 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 </header>
 
 <main>
+  <section id="studentIn">
+    <h2>Students: see your tools</h2>
+    <div class="card">
+      <label for="myNo">Student number</label>
+      <input id="myNo" inputmode="numeric" autocomplete="off">
+      <label for="mySurname">Surname</label>
+      <input id="mySurname" autocomplete="off" autocapitalize="words">
+      <button class="secondary" onclick="scanMyNumber()">Scan student card</button>
+      <div id="myReader" class="hidden"></div>
+      <button onclick="showMyTools()">Show my tools</button>
+      <p class="small">Enter both your student number and surname. This keeps your details private.</p>
+    </div>
+    <div id="myResult"></div>
+  </section>
+
   <section id="signin">
     <h2>Staff sign-in</h2>
     <div class="card">
@@ -132,7 +149,7 @@ let busy = false;
 let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 0;
 const pending = new Set();
 let mode = 'add'; // 'add' = add to check-out/check-in lists, 'who' = show who has the tool
-let scanTarget = 'tool'; // 'tool' = reading tool labels, 'student' = reading a student's number QR
+let scanTarget = 'tool'; // 'tool' = reading tool labels, 'student' = staff reading a student's number QR, 'mystudent' = a student reading their own card
 
 function esc(s){
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -208,6 +225,8 @@ async function signIn(){
 
 function showApp(){
   $('signin').classList.add('hidden');
+  $('studentIn').classList.add('hidden');
+  $('myResult').innerHTML = '';
   $('app').classList.remove('hidden');
   $('signout').classList.remove('hidden');
   $('who').textContent = 'Signed in as ' + S.name + '. Signs out after 10 minutes without activity.';
@@ -223,6 +242,7 @@ async function lockOut(msg){
   setMode('add');
   $('app').classList.add('hidden');
   $('signin').classList.remove('hidden');
+  $('studentIn').classList.remove('hidden');
   $('signout').classList.add('hidden');
   if (msg) status(msg, 'bad', 9000);
 }
@@ -344,12 +364,12 @@ async function onStudentCode(text){
   confirmStudent();
 }
 
-async function startCamera(){
+async function startCamera(elId = 'reader'){
   if (camOn) return;
   if (typeof Html5Qrcode === 'undefined') {
     return status('The scanner did not load. Check the internet connection, or type the tool ID.', 'bad', 9000);
   }
-  qr = new Html5Qrcode('reader');
+  qr = new Html5Qrcode(elId);
   try {
     // Scan area is now 90% of the shorter side of the camera view (was a fixed 240px square).
     await qr.start({ facingMode: 'environment' }, {
@@ -374,17 +394,69 @@ async function stopCamera(){
   camOn = false;
   zoomTrack = null;
   $('zoomBox').classList.add('hidden');
+  $('myReader').classList.add('hidden');
   $('camBtn').textContent = 'Start camera';
 }
 
 function toggleCamera(){
   touch();
+  if (scanTarget !== 'tool') stopCamera();
   scanTarget = 'tool';
   camOn ? stopCamera() : startCamera();
 }
 
+// Student self-service: scan the card to fill in the student number, then type the surname.
+async function scanMyNumber(){
+  touch();
+  scanTarget = 'mystudent';
+  if (camOn) await stopCamera();
+  $('myReader').classList.remove('hidden');
+  status('Point the camera at your student card.');
+  startCamera('myReader');
+}
+
+function onMyCode(text){
+  const no = String(text || '').trim();
+  if (!/^\d{4,15}$/.test(no)) {
+    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); status('That is not a student card.', 'bad'); }
+    return;
+  }
+  scanTarget = 'tool';
+  stopCamera();
+  $('myNo').value = no;
+  $('mySurname').focus();
+  status('Student number read. Type your surname, then tap Show my tools.');
+}
+
+async function showMyTools(){
+  touch();
+  const no = $('myNo').value.trim();
+  const surname = $('mySurname').value.trim();
+  if (!no || !surname) return status('Enter your student number and surname.', 'bad');
+  $('myResult').innerHTML = '<p class="small">Checking…</p>';
+  try {
+    const r = await api({ api: 'mytools', no: no, surname: surname });
+    $('myResult').innerHTML = myToolsHtml(r);
+  } catch (e) {
+    $('myResult').innerHTML = '';
+    status(e.message, 'bad', 9000);
+  }
+}
+
+function myToolsHtml(r){
+  const head = '<h2>Hi ' + esc(r.name) + ', these are your tools</h2>';
+  if (!r.items.length) return head + '<p class="small">No tools are signed out to you.</p>';
+  return head + r.items.map(t =>
+    '<div class="row' + (t.overdue ? ' late' : t.dueToday ? ' dueToday' : '') + '"><div>' +
+    '<div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+    '<small>' + (t.overdue ? 'OVERDUE · ' : t.dueToday ? 'Due back today · ' : '') + 'Return by ' + esc(t.due) + '</small>' +
+    '</div></div>').join('') +
+    '<p class="small">Tools due back today are shown in light red.</p>';
+}
+
 function onCode(text){
   touch();
+  if (scanTarget === 'mystudent') return onMyCode(text);
   if (scanTarget === 'student') return onStudentCode(text);
   const id = parseId(text);
   if (!id) return status('That QR code is not a storeroom tool.', 'bad');
