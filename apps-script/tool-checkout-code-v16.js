@@ -1,5 +1,6 @@
 // ============================================================
-// Workshop Tools - Apps Script (v15)
+// Workshop Tools - Apps Script (v16)
+// v16: tool lookups return dueDate (yyyy-MM-dd), used by the scanner's Undo.
 // v15: staff pages header renamed to Workshop Tools. Otherwise the same as v14.
 // v14: students can see the workshop tools signed out to them (student number only).
 // v12: new QR labels contain only the tool ID (e.g. TL-042), which makes them much simpler to scan.
@@ -499,6 +500,7 @@ function apiTool(token, id) {
     id: t.id, name: t.name, out: out,
     holder: out ? t.holder : '',
     due: due ? fmt(due) : '',
+    dueDate: due ? Utilities.formatDate(due, Session.getScriptTimeZone(), 'yyyy-MM-dd') : '',
     overdue: !!(out && due && due < new Date()),
     borrower: out ? fullNameForHolder(t.holder) : '',
     year: out ? yearForHolder(t.holder) : ''
@@ -520,6 +522,7 @@ function apiHolding(token, no) {
         id: String(r[0]),
         name: String(r[1]),
         due: due ? fmt(due) : 'No date set',
+        dueDate: due ? Utilities.formatDate(due, Session.getScriptTimeZone(), 'yyyy-MM-dd') : '',
         dueTime: due ? due.getTime() : Infinity,
         overdue: !!(due && due < now)
       };

@@ -61,6 +61,11 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 .who.late{background:#ffebee;border-color:var(--red)}
 .who.late .big,.who.late .tag{color:var(--red)}
 .who .big{font-size:22px;font-weight:bold}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.overlay.hidden{display:none !important}
+.sheet{background:#fff;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:18px;max-height:85vh;overflow:auto}
+.sheet button{margin-top:10px}
+.toast button{display:inline-block;width:auto;min-height:40px;margin:8px 0 0 0;padding:6px 14px;font-size:17px;background:#fff;color:var(--dark);border:0;border-radius:8px}
 </style>
 </head>
 <body>
@@ -142,6 +147,15 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
   </section>
 </main>
 
+<div id="confirmBox" class="overlay hidden">
+  <div class="sheet">
+    <h2 id="confirmTitle" style="margin-top:0"></h2>
+    <div id="confirmBody"></div>
+    <button id="confirmOk">Confirm</button>
+    <button id="confirmNo" class="ghost">Cancel</button>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -167,9 +181,16 @@ function esc(s){
 
 // ---------- Messages ----------
 
-function status(msg, kind = 'ok', ms = 6000){
+function status(msg, kind = 'ok', ms = 6000, action = null){
   const t = $('toast');
-  t.textContent = msg;
+  t.innerHTML = '';
+  t.appendChild(document.createTextNode(msg));
+  if (action) {
+    const b = document.createElement('button');
+    b.textContent = action.label;
+    b.onclick = () => { t.classList.add('hidden'); action.fn(); };
+    t.appendChild(b);
+  }
   t.className = 'toast ' + kind;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.add('hidden'), ms);
@@ -330,6 +351,7 @@ async function loadHolding(){
 }
 
 function renderHolding(items){
+  holdItems = new Map(items.map(t => [t.id, t]));
   $('nHold').textContent = items.length;
   $('listHold').innerHTML = items.length
     ? items.map(t =>
@@ -357,21 +379,33 @@ function updateHoldBtn(){
 // Checks in the ticked tools from the student's list.
 async function checkInHolding(){
   touch();
-  const ids = Array.prototype.map.call(document.querySelectorAll('input.hold:checked'), c => c.value);
+  const picked = Array.from(document.querySelectorAll('input.hold:checked'));
+  const ids = picked.map(c => c.value);
   if (!ids.length) return;
   const token = S.token;
+  const items = picked.map(c => ({
+    id: c.value,
+    name: (c.closest('label').querySelector('.id').textContent.split(' · ')[1] || '')
+  }));
+  const ok = await confirmSave('Check in ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '?',
+    [toolLines(items)], 'Check in');
+  if (!ok || S.token !== token) return;
   // Remove the ticked rows straight away; the list is reloaded from the server afterwards either way.
-  document.querySelectorAll('input.hold:checked').forEach(c => c.closest('label').remove());
+  picked.forEach(c => c.closest('label').remove());
   busy = true; updateHoldBtn();
-  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
+  status('Saving…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
     if (S.token !== token) return;
-    r.done.forEach(id => S.items.delete(id));
-    r.notOut.forEach(id => S.items.delete(id));
+    const no = S.student ? S.student.no : '';
+    lastAction = { type: 'in', items: r.done.map(id => {
+      const name = (items.find(x => x.id === id) || {}).name || '';
+      const dueDate = (holdItems.get(id) || {}).dueDate;
+      return { id: id, name: name, no: no, dueDate: dueDate };
+    }) };
     let msg = 'Checked in ' + r.done.length + '.';
     if (r.notOut.length) msg += ' Already in: ' + r.notOut.join(', ') + '.';
-    status(msg, r.notOut.length ? 'bad' : 'ok', 8000);
+    status(msg, r.notOut.length ? 'bad' : 'ok', 10000, r.done.length ? { label: 'Undo', fn: undoLast } : null);
   } catch (e) {
     handleErr(e);
   } finally {
@@ -701,6 +735,76 @@ async function lookupTool(id){
   }
 }
 
+// ---------- Confirm before saving, and undo ----------
+
+let lastAction = null;          // the last save this session, so it can be undone
+let holdItems = new Map();      // tools out to the student currently on screen, by ID
+
+// Shows a summary and waits for Confirm or Cancel. Resolves true only on Confirm.
+function confirmSave(title, lines, okLabel){
+  return new Promise(resolve => {
+    $('confirmTitle').textContent = title;
+    $('confirmBody').innerHTML = lines.map(l => '<p style="margin:8px 0">' + l + '</p>').join('');
+    $('confirmOk').textContent = okLabel;
+    const done = v => { $('confirmBox').classList.add('hidden'); resolve(v); };
+    $('confirmOk').onclick = () => done(true);
+    $('confirmNo').onclick = () => done(false);
+    $('confirmBox').classList.remove('hidden');
+  });
+}
+
+function toolLines(items){
+  return items.map(t => esc(t.id) + ' · ' + esc(t.name)).join('<br>');
+}
+
+function noFromHolder(h){
+  const m = /\((\d+)\)\s*$/.exec(String(h || ''));
+  return m ? m[1] : '';
+}
+
+// Reverses the last save: check-outs are checked back in; check-ins are signed out again to the same student and date.
+async function undoLast(){
+  const a = lastAction;
+  if (!a) return;
+  lastAction = null;
+  const token = S.token;
+  try {
+    if (a.type === 'out') {
+      const r = await api({ api: 'checkin', token: token, ids: a.ids.join(',') });
+      if (S.token !== token) return;
+      let msg = 'Undone: ' + r.done.length + ' tool' + (r.done.length === 1 ? '' : 's') + ' checked back in.';
+      if (r.notOut.length) msg += ' Could not undo: ' + r.notOut.join(', ') + '.';
+      status(msg, r.notOut.length ? 'bad' : 'ok', 8000);
+    } else {
+      const failed = [];
+      const groups = new Map();
+      a.items.forEach(it => {
+        if (!it.no || !it.dueDate) { failed.push(it.id); return; }
+        const k = it.no + '|' + it.dueDate;
+        if (!groups.has(k)) groups.set(k, { no: it.no, ret: it.dueDate, ids: [] });
+        groups.get(k).ids.push(it.id);
+      });
+      let back = 0;
+      for (const g of groups.values()) {
+        try {
+          const r = await api({ api: 'checkout', token: token, ids: g.ids.join(','), no: g.no, ret: g.ret });
+          back += r.done.length;
+          failed.push(...r.taken);
+        } catch (e) {
+          failed.push(...g.ids);
+        }
+      }
+      if (S.token !== token) return;
+      let msg = 'Undone: ' + back + ' tool' + (back === 1 ? '' : 's') + ' signed out again.';
+      if (failed.length) msg += ' Could not undo: ' + failed.join(', ') + '.';
+      status(msg, failed.length ? 'bad' : 'ok', 8000);
+    }
+    loadHolding();
+  } catch (e) {
+    handleErr(e);
+  }
+}
+
 // ---------- Lists and buttons ----------
 
 function rowHtml(t){
@@ -736,17 +840,24 @@ async function checkOut(){
   const ret = $('retDate').value;
   if (!ret) return status('Choose the return date first.', 'bad');
   const token = S.token;
-  // Clear the rows straight away; they come back only if the server refuses them.
   const removed = ids.map(id => S.items.get(id)).filter(Boolean);
+  const ok = await confirmSave('Check out ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '?', [
+    'To: <b>' + esc(S.student.holder) + '</b>' + (S.student.year ? ' · ' + esc(S.student.year) : ''),
+    'Return by: <b>' + esc(fmtDate(ret)) + '</b>',
+    toolLines(removed)
+  ], 'Check out');
+  if (!ok || S.token !== token) return;
+  // Clear the rows straight away; they come back only if the server refuses them.
   ids.forEach(id => S.items.delete(id));
   busy = true; renderLists();
-  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
+  status('Saving…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkout', token: token, ids: ids.join(','), no: S.student.no, ret: ret });
     if (S.token !== token) return;
+    lastAction = { type: 'out', ids: r.done };
     let msg = 'Checked out ' + r.done.length + ' to ' + r.holder + ', return by ' + r.returnBy + '.';
     if (r.taken.length) msg += ' Not checked out (already out or unknown): ' + r.taken.join(', ') + '.';
-    status(msg, r.taken.length ? 'bad' : 'ok', 10000);
+    status(msg, r.taken.length ? 'bad' : 'ok', 10000, r.done.length ? { label: 'Undo', fn: undoLast } : null);
     loadHolding();
   } catch (e) {
     if (S.token === token) removed.forEach(t => S.items.set(t.id, t));
@@ -763,15 +874,21 @@ async function checkIn(){
   if (!ids.length) return;
   const token = S.token;
   const removed = ids.map(id => S.items.get(id)).filter(Boolean);
+  const ok = await confirmSave('Check in ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '?',
+    [toolLines(removed)], 'Check in');
+  if (!ok || S.token !== token) return;
   ids.forEach(id => S.items.delete(id));
   busy = true; renderLists();
-  status('Saving ' + ids.length + ' tool' + (ids.length > 1 ? 's' : '') + '…', 'ok', 30000);
+  status('Saving…', 'ok', 30000);
   try {
     const r = await api({ api: 'checkin', token: token, ids: ids.join(',') });
     if (S.token !== token) return;
+    lastAction = { type: 'in', items: removed.filter(t => r.done.includes(t.id)).map(t => ({
+      id: t.id, name: t.name, no: noFromHolder(t.holder), dueDate: t.dueDate
+    })) };
     let msg = 'Checked in ' + r.done.length + '.';
     if (r.notOut.length) msg += ' Already in: ' + r.notOut.join(', ') + '.';
-    status(msg, r.notOut.length ? 'bad' : 'ok', 10000);
+    status(msg, r.notOut.length ? 'bad' : 'ok', 10000, r.done.length ? { label: 'Undo', fn: undoLast } : null);
     loadHolding();
   } catch (e) {
     if (S.token === token) removed.forEach(t => S.items.set(t.id, t));
