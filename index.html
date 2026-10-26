@@ -66,6 +66,14 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 .sheet{background:#fff;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:18px;max-height:85vh;overflow:auto}
 .sheet button{margin-top:10px}
 .toast button{display:inline-block;width:auto;min-height:40px;margin:8px 0 0 0;padding:6px 14px;font-size:17px;background:#fff;color:var(--dark);border:0;border-radius:8px}
+.scanFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;opacity:0;z-index:30;transition:opacity .15s}
+.scanFlash.show{opacity:1}
+.scanFlash.good{background:rgba(46,125,50,.9);color:#fff}
+.scanFlash.bad{background:rgba(198,40,40,.92);color:#fff}
+#scanMark{font-size:120px;line-height:1;font-weight:bold}
+#scanLabel{font-size:26px;font-weight:bold;text-align:center;padding:0 20px;word-break:break-all}
+@keyframes rowFlash{0%{background:#66bb6a}100%{background:#fff}}
+.row.hilite{animation:rowFlash 1.2s ease-out}
 </style>
 </head>
 <body>
@@ -146,6 +154,11 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
     <button id="btnIn" class="secondary" onclick="checkIn()" disabled>Check in</button>
   </section>
 </main>
+
+<div id="scanFlash" class="scanFlash">
+  <div id="scanMark"></div>
+  <div id="scanLabel"></div>
+</div>
 
 <div id="confirmBox" class="overlay hidden">
   <div class="sheet">
@@ -469,12 +482,12 @@ async function scanStudent(){
 async function onStudentCode(text){
   const no = String(text || '').trim();
   if (!/^\d{4,15}$/.test(no)) {
-    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); status('That is not a student QR code.', 'bad'); }
+    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); feedback(false); status('That is not a student QR code.', 'bad'); }
     return;
   }
   scanTarget = 'tool';
   stopCamera();
-  feedback(true);
+  feedback(true, 'Student card read');
   if (!$('stuNo')) return;
   $('stuNo').value = no;
   confirmStudent();
@@ -499,9 +512,24 @@ function beep(freq, ms){
     o.start(); o.stop(audioCtx.currentTime + ms / 1000);
   } catch (e) {}
 }
-function feedback(ok){
+let flashTimer = null;
+
+// Big full-screen green (good) or red (bad) flash with a tick or cross and the label that was read.
+function flashScan(ok, label){
+  const f = $('scanFlash');
+  f.className = 'scanFlash ' + (ok ? 'good' : 'bad');
+  $('scanMark').textContent = ok ? '✓' : '✗';
+  $('scanLabel').textContent = label || '';
+  void f.offsetWidth; // restart the transition
+  f.classList.add('show');
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(() => f.classList.remove('show'), 700);
+}
+
+function feedback(ok, label){
   if (navigator.vibrate) navigator.vibrate(ok ? 60 : [120, 80, 120]);
   beep(ok ? 1000 : 300, ok ? 90 : 300);
+  flashScan(ok, label);
 }
 
 async function startCamera(elId = 'reader'){
@@ -559,12 +587,12 @@ async function scanMyNumber(){
 function onMyCode(text){
   const no = String(text || '').trim();
   if (!/^\d{4,15}$/.test(no)) {
-    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); status('That is not a student card.', 'bad'); }
+    if (Date.now() - lastAt > 3000) { lastAt = Date.now(); feedback(false); status('That is not a student card.', 'bad'); }
     return;
   }
   scanTarget = 'tool';
   stopCamera();
-  feedback(true);
+  feedback(true, 'Student card read');
   $('myNo').value = no;
   status('Student number read. Tap Show my tools.');
 }
@@ -611,7 +639,7 @@ function onCode(text){
   if (id === lastId && now - lastAt < 3000) return; // ignore the same label being read again
   lastId = id;
   lastAt = now;
-  feedback(true);
+  feedback(true, id);
   mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
@@ -639,6 +667,7 @@ async function addTool(id){
   pending.add(id);
   S.items.set(id, { id: id, name: 'Checking…', pending: true });
   renderLists();
+  highlightRow(id);
   const token = S.token;
   try {
     const t = await api({ api: 'tool', token: token, id: id });
@@ -647,6 +676,7 @@ async function addTool(id){
     status(t.name + ' (' + t.id + ') added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
   } catch (e) {
     if (S.token === token) S.items.delete(id);
+    flashScan(false, id);
     handleErr(e);
   } finally {
     pending.delete(id);
@@ -807,11 +837,21 @@ async function undoLast(){
 
 // ---------- Lists and buttons ----------
 
+// Flashes a tool's row green and brings it into view, so the list confirms the scan.
+function highlightRow(id){
+  const el = Array.from(document.querySelectorAll('[data-id]')).find(e => e.dataset.id === id);
+  if (!el) return;
+  el.classList.remove('hilite');
+  void el.offsetWidth;
+  el.classList.add('hilite');
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function rowHtml(t){
   const detail = t.pending ? 'Checking…' : t.out
     ? 'Out to ' + esc(t.borrower || t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
     : 'Available';
-  return '<div class="row"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+  return '<div class="row" data-id="' + esc(t.id) + '"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
     '<small>' + detail + '</small></div>' +
     '<button class="x" onclick="removeItem(\'' + esc(t.id) + '\')">Remove</button></div>';
 }
