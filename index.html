@@ -27,7 +27,8 @@ button.secondary{background:var(--dark)}
 button.ghost{background:#fff;color:var(--dark);border:2px solid var(--teal)}
 button.x{width:auto;min-height:40px;margin:0;padding:6px 14px;font-size:16px;background:#fff;color:var(--red);border:2px solid var(--red)}
 button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
-#signout{width:auto;min-height:40px;margin:0;padding:6px 12px;font-size:16px}
+#signout,#staffBtn{width:auto;min-height:40px;margin:0;padding:6px 12px;font-size:16px}
+#staffBtn{margin-left:auto}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px;border:2px solid var(--mid);border-radius:8px;margin:8px 0;background:#fff}
 .row .id{font-weight:bold}
 .row small{color:#333;display:block;margin-top:2px}
@@ -62,6 +63,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 <body>
 <header>
   <span class="brand"><img class="logo" src="logo.png" alt="Product and Industrial Design"><span>Storeroom Scanner</span></span>
+  <button id="staffBtn" class="ghost" onclick="openStaffSignIn()">Staff sign in</button>
   <button id="signout" class="ghost hidden" onclick="lockOut('Signed out.')">Sign out</button>
 </header>
 
@@ -79,12 +81,13 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
     <div id="myResult"></div>
   </section>
 
-  <section id="signin">
+  <section id="signin" class="hidden">
     <h2>Staff sign-in</h2>
     <div class="card">
       <label for="pin">Your PIN</label>
       <input id="pin" type="password" inputmode="numeric" autocomplete="off">
       <button id="signinBtn" onclick="signIn()">Sign in</button>
+      <button class="ghost" onclick="closeStaffSignIn()">Cancel</button>
       <p class="small">Your PIN is used only to sign in. You are signed out after 10 minutes without activity.</p>
     </div>
   </section>
@@ -206,6 +209,17 @@ document.addEventListener('visibilitychange', () => {
 
 // ---------- Sign in / out ----------
 
+function openStaffSignIn(){
+  $('signin').classList.remove('hidden');
+  $('signin').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('pin').focus();
+}
+
+function closeStaffSignIn(){
+  $('pin').value = '';
+  $('signin').classList.add('hidden');
+}
+
 async function signIn(){
   const pin = $('pin').value.trim();
   if (!pin) return status('Enter your PIN.', 'bad');
@@ -227,6 +241,7 @@ async function signIn(){
 
 function showApp(){
   $('signin').classList.add('hidden');
+  $('staffBtn').classList.add('hidden');
   $('studentIn').classList.add('hidden');
   $('myResult').innerHTML = '';
   $('app').classList.remove('hidden');
@@ -243,7 +258,8 @@ async function lockOut(msg){
   scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
-  $('signin').classList.remove('hidden');
+  $('signin').classList.add('hidden');
+  $('staffBtn').classList.remove('hidden');
   $('studentIn').classList.remove('hidden');
   $('signout').classList.add('hidden');
   if (msg) status(msg, 'bad', 9000);
