@@ -215,7 +215,7 @@ function showStaffView(on){
   $('signin').classList.toggle('hidden', !on);
   $('studentIn').classList.toggle('hidden', on);
   $('myResult').classList.toggle('hidden', on);
-  $('staffBtn').textContent = on ? 'Students' : 'Staff sign in';
+  $('staffBtn').textContent = on ? 'Student sign in' : 'Staff sign in';
   if (on) {
     $('pin').focus();
   } else {
