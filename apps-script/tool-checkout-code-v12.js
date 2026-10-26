@@ -1,5 +1,7 @@
 // ============================================================
-// Tool Storeroom - Apps Script (v11)
+// Tool Storeroom - Apps Script (v12)
+// v12: new QR labels contain only the tool ID (e.g. TL-042), which makes them much simpler to scan.
+// Old labels with the full web-app link still work.
 // Students sheet: A = StudentNo, B = Name, C = Surname, D = Year.
 // One complete file. Replace everything in Extensions > Apps Script with this.
 // Contains: v7 staff pages and QR links (unchanged) + JSON API for CPUT-Workshop-Scanner
@@ -411,9 +413,9 @@ function esc(s) {
 }
 
 // ---------- QR code export (run manually) ----------
+// Each QR code holds only the tool ID, so it is a small, simple code that phones read easily.
 
 function saveQRCodes() {
-  const base = 'https://script.google.com/macros/s/AKfycbzLni8uM0wizNMLKrfQyi_9keGhMZ6JMfQ235oC4JEXe02ZdKwn9bYNdLuDQ5hFHot6zw/exec';
   const rows = SpreadsheetApp.getActive().getSheetByName(TOOLS).getDataRange().getValues();
   const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HHmm');
   const folder = DriveApp.createFolder('Tool QR codes ' + stamp);
@@ -422,7 +424,7 @@ function saveQRCodes() {
     const id = String(r[0]);
     if (!id) return;
     const url = 'https://api.qrserver.com/v1/create-qr-code/?size=600x600&ecc=L&margin=1&data=' +
-      encodeURIComponent(base + '?tool=' + id);
+      encodeURIComponent(id);
     const blob = UrlFetchApp.fetch(url).getBlob().setName(id + '.png');
     folder.createFile(blob);
   });

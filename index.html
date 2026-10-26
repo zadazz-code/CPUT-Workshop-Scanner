@@ -302,11 +302,14 @@ async function confirmStudent(){
 
 // ---------- Scanning ----------
 
+// Accepts the new simple labels (just the ID, e.g. TL-042) and the older labels (a full link ending ?tool=TL-042).
 function parseId(text){
+  const raw = String(text || '').trim();
   try {
-    const t = new URL(text).searchParams.get('tool');
-    if (t) return t.trim();
+    const t = new URL(raw).searchParams.get('tool');
+    if (t) return normaliseId(t);
   } catch (e) {}
+  if (/^[A-Za-z]{1,4}-\d{1,4}$/.test(raw) || /^\d{1,4}$/.test(raw)) return normaliseId(raw);
   return null;
 }
 
