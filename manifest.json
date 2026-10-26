@@ -1,6 +1,6 @@
 {
-  "name": "Storeroom Scanner",
-  "short_name": "Storeroom",
+  "name": "Workshop Tools",
+  "short_name": "Workshop Tools",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
