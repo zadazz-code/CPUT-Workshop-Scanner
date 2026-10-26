@@ -90,7 +90,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
         <p class="small" style="margin:4px 0 0">Zoom works on most Android phones. On iPhone, move the camera closer instead.</p>
       </div>
       <label for="manual">Or type a tool ID</label>
-      <input id="manual" placeholder="e.g. TL-042" autocapitalize="characters" autocomplete="off">
+      <input id="manual" placeholder="e.g. 042" inputmode="numeric" autocapitalize="characters" autocomplete="off">
       <button id="manualBtn" class="ghost" onclick="addManual()">Add tool</button>
     </div>
     <div id="whoResult"></div>
@@ -359,9 +359,17 @@ function onCode(text){
   mode === 'who' ? lookupTool(id) : addTool(id);
 }
 
+// Typing just the number is enough: "42" or "042" becomes "TL-042".
+// Other IDs (for example C-014) are used as typed.
+function normaliseId(raw){
+  const s = String(raw || '').trim().toUpperCase();
+  if (/^\d{1,4}$/.test(s)) return 'TL-' + s.padStart(3, '0');
+  return s;
+}
+
 function addManual(){
   touch();
-  const id = $('manual').value.trim().toUpperCase();
+  const id = normaliseId($('manual').value);
   if (!id) return;
   $('manual').value = '';
   mode === 'who' ? lookupTool(id) : addTool(id);
