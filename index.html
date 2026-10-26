@@ -683,6 +683,11 @@ function addManual(){
 }
 
 // The tool appears in the list straight away as "Checking…", then fills in when the server replies.
+// Enter in the student number box confirms the student. The box is rebuilt on screen, so listen at document level.
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target && e.target.id === 'stuNo') { e.preventDefault(); confirmStudent(); }
+});
+
 // Enter adds the typed tool and keeps the cursor in the box, so the next number can be typed straight away.
 $('manual').addEventListener('keydown', e => {
   if (e.key === 'Enter') { e.preventDefault(); addManual(); }
