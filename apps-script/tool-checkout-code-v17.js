@@ -1,5 +1,6 @@
 // ============================================================
-// Workshop Tools - Apps Script (v16)
+// Workshop Tools - Apps Script (v17)
+// v17: a small "ping" request the scanner sends every few minutes while staff are signed in, to keep the server responsive.
 // v16: tool lookups return dueDate (yyyy-MM-dd), used by the scanner's Undo.
 // v15: staff pages header renamed to Workshop Tools. Otherwise the same as v14.
 // v14: students can see the workshop tools signed out to them (student number only).
@@ -457,6 +458,7 @@ function apiRoute(p) {
     case 'student':  return apiStudent(p.token, p.no);
     case 'tool':     return apiTool(p.token, p.id);
     case 'holding':  return apiHolding(p.token, p.no);
+    case 'ping':     return { time: new Date().toISOString() };
     case 'mytools':  return apiMyTools(p.no);
     case 'checkout': return apiCheckout(p.token, ids, p.no, p.ret);
     case 'checkin':  return apiCheckin(p.token, ids);

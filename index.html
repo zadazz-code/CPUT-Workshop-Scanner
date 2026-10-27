@@ -300,6 +300,9 @@ function showApp(){
   $('signout').classList.remove('hidden');
   $('who').textContent = 'Signed in as ' + S.name + '. Signs out after 10 minutes without activity.';
   $('retDate').value = todayStr();
+  // Keep the server responsive while staff are signed in: a tiny request every 4 minutes.
+  clearInterval(keepAlive);
+  keepAlive = setInterval(() => api({ api: 'ping' }).catch(() => {}), 4 * 60 * 1000);
   renderStudent();
   renderLists();
 }
@@ -311,6 +314,7 @@ async function lockOut(msg){
   scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
+  clearInterval(keepAlive);
   showStaffView(false);
   $('staffBtn').classList.remove('hidden');
   $('signout').classList.add('hidden');
@@ -627,6 +631,7 @@ async function showMyTools(auto = false){
 
 // Typing: once the number looks complete, wait briefly and then load the tools.
 let myTimer = null;
+let keepAlive = null; // timer that pings the server while staff are signed in
 $('myNo').addEventListener('input', () => {
   clearTimeout(myTimer);
   if (!/^\d{4,15}$/.test($('myNo').value.trim())) { $('myResult').innerHTML = ''; return; }
