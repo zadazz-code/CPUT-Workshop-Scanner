@@ -76,44 +76,94 @@ ul li{margin:6px 0}
 footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--muted)}
 @media print{body{background:#fff;color:#000}.note,figure,.quick div{break-inside:avoid}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* Layout refinements */
+main{padding-bottom:12px}
+h1{font-size:32px}
+h2{font-size:24px;margin:40px 0 10px;padding-top:6px;border-top:1px solid var(--line)}
+h2:first-of-type{border-top:0;margin-top:24px}
+h3{font-size:19px;margin:24px 0 6px;color:var(--accent-dark)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:20px 0 8px}
+.cards a{display:block;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:10px;padding:14px}
+.cards a:hover,.cards a:focus{border-color:var(--accent-dark)}
+.cards b{display:block;color:var(--accent-dark);font-size:18px;margin-bottom:4px}
+.cards span{font-size:16px;color:var(--muted);line-height:1.4;display:block}
+.toc{font-size:17px;margin:8px 0 0;padding:0;list-style:none;columns:2;column-gap:24px}
+.toc li{margin:4px 0;break-inside:avoid}
+.toc a{color:var(--accent-dark)}
+@media (max-width:520px){.toc{columns:1}}
+.types{width:100%;border-collapse:collapse;margin:12px 0;font-size:17px}
+.types th,.types td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.types th{color:var(--accent-dark);font-weight:500;border-bottom:2px solid var(--accent)}
+.tip{background:var(--card);border-left:6px solid var(--accent);border-radius:8px;padding:12px 14px;margin:16px 0;font-size:17px}
+.tip b{color:var(--accent-dark)}
+.figs figure{max-width:200px}
+ol li{font-size:18px}
+.step-end{margin:6px 0 0;font-size:17px;color:var(--muted)}
 </style>
 <main>
 
 <header>
   <div class="brand"><img class="logo" src="logo.png" alt="Product and Industrial Design"></div>
   <h1>Workshop Tools Guide</h1>
-  <p class="lead">How to check tools out and in, and how to find out who has a tool. For workshop staff.</p>
+  <p class="lead">How to check items out and in, and how to find out who has them. For workshop staff.</p>
 </header>
 
-<div class="quick" aria-label="Quick reference">
-  <div><b>Check out</b><span>Scan the student, scan the tools, then tap <b>Check out</b> in the bar.</span></div>
-  <div><b>Check in</b><span>Scan the tool, or tick it in the student's list, then tap <b>Check in</b> in the bar.</span></div>
-  <div><b>Who has this?</b><span>Switch to it above the scan box and scan the tool.</span></div>
+<div class="cards" aria-label="Quick reference">
+  <a href="#tools-out"><b>Check out a tool</b><span>Scan the student, scan the tools, then check out from the bar.</span></a>
+  <a href="#accessories"><b>Take accessories</b><span>Scan a family code such as DB, then pick the item.</span></a>
+  <a href="#check-in"><b>Check in</b><span>Scan the tool, or tick it in the student's list.</span></a>
+  <a href="#who"><b>Who has this?</b><span>Find out who a tool is out to, and when it is due.</span></a>
 </div>
 
-<h2>What you need</h2>
-<p>Your phone, your staff PIN, and the Workshop Tools app. Open it from the home-screen icon, or from the link you were given.</p>
+<h2>Contents</h2>
+<ul class="toc">
+  <li><a href="#sign-in">1. Sign in</a></li>
+  <li><a href="#items">2. Types of item</a></li>
+  <li><a href="#screen">3. The screen and the bar</a></li>
+  <li><a href="#tools-out">4. Check out a tool</a></li>
+  <li><a href="#accessories">5. Take accessories</a></li>
+  <li><a href="#consumables">6. Take consumables</a></li>
+  <li><a href="#check-in">7. Check in a tool</a></li>
+  <li><a href="#return-acc">8. Return accessories</a></li>
+  <li><a href="#who">9. Who has this tool?</a></li>
+  <li><a href="#undo">10. Undo a mistake</a></li>
+  <li><a href="#feedback">11. Scan feedback and colours</a></li>
+  <li><a href="#students">12. Students</a></li>
+  <li><a href="#trouble">13. If something goes wrong</a></li>
+</ul>
 
-<figure style="max-width:320px;margin:14px 0">
-  <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-    <rect x="54" y="8" width="52" height="94" rx="8"/>
-    <line x1="72" y1="18" x2="88" y2="18"/>
-    <rect x="62" y="30" width="36" height="36"/>
-    <path d="M68 36h6v6h-6zM80 36h6v6h-6zM68 48h6v6h-6zM80 54h8"/>
-    <line x1="66" y1="84" x2="94" y2="84"/>
-  </svg>
-  <figcaption>Your phone</figcaption>
-</figure>
-
-<h2>Staff sign in</h2>
+<h2 id="sign-in">1. Sign in</h2>
+<p>You need your phone, your staff PIN, and the Workshop Tools app. Open it from the home-screen icon, or from the link you were given.</p>
 <ol>
   <li>Tap <b>Staff sign in</b> at the top right.</li>
-  <li>Type your PIN and tap <b>Sign in</b>.</li>
-  <li>Your name appears at the top. The app signs you out after 10 minutes without touching the screen, so sign out when you leave.</li>
+  <li>Type your PIN and tap <b>Sign in</b>, or press Enter.</li>
+  <li>Your name appears at the top. The app signs you out after 10 minutes without use, so sign out when you leave by tapping <b>Sign out</b>.</li>
 </ol>
-<p>To go back to the student screen, tap <b>Student sign in</b> at the top right.</p>
+<p class="step-end">To return to the student screen, tap <b>Student sign in</b> at the top right.</p>
 
-<h2>Check a tool out to a student</h2>
+<h2 id="items">2. Types of item</h2>
+<p>There are three kinds of item. The app treats each kind differently.</p>
+<div class="wrap">
+<table class="types">
+  <tr><th>Kind</th><th>Examples</th><th>How it is recorded</th><th>Comes back?</th></tr>
+  <tr><td><b>Tool</b></td><td>Hammers, saws, grinders</td><td>Scan its own QR label, such as TL-042.</td><td>Yes. Check it in when it is returned.</td></tr>
+  <tr><td><b>Accessory</b></td><td>Drill bits, allen keys, hole saws</td><td>Scan the family label (for example DB), then pick the item. One item at a time.</td><td>Yes. Tick each item when it is returned.</td></tr>
+  <tr><td><b>Consumable</b></td><td>Sanding paper, welding rods</td><td>Scan the family label (for example SP), then pick the item and how many.</td><td>No. These are used up.</td></tr>
+</table>
+</div>
+
+<h2 id="screen">3. The screen and the bar</h2>
+<p>The scan area is at the top of the screen, with the lists below it. Each list is named after what it does: <b>To check out</b>, <b>To check in</b>, and <b>Out to this student</b>.</p>
+<p>A bar runs along the bottom of the screen while you are signed in. It shows how many items are waiting and holds the one main button:</p>
+<ul>
+  <li>If items are waiting to be checked out, the button says <b>Check out</b> with the number. A student must be confirmed first.</li>
+  <li>If you have ticked items from a student's list, the button says <b>Check in</b> with that number.</li>
+  <li>If only items to check in are waiting, the button says <b>Check in</b> with that number.</li>
+</ul>
+<div class="tip"><b>Saving is done from the bar only.</b> Each save asks you to <b>Confirm</b> first. If the button is grey, there is nothing to save yet.</div>
+
+<h2 id="tools-out">4. Check out a tool</h2>
 <div class="figs">
   <figure>
     <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -123,55 +173,39 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
       <circle cx="124" cy="36" r="10"/>
       <path d="M108 86c2-14 30-14 32 0"/>
     </svg>
-    <figcaption>Tool goes to the student</figcaption>
+    <figcaption>The tool goes to the student</figcaption>
   </figure>
 </div>
 <ol>
-  <li><b>Student.</b> Tap <b>Scan student QR</b> and point the camera at the student card. Or type the student number. The student's name appears. Tap <b>Confirm student</b> if you typed it.</li>
-  <li><b>Tool.</b> Point the camera at the tool's QR label. The tool appears under <b>To check out</b>. If the label is damaged, tap the box, type the number (for example <kbd>42</kbd> for TL-042) and tap <b>Add tool</b>.</li>
-  <li><b>Repeat</b> step 2 for each tool. Each one is added to the list.</li>
-  <li><b>Return date.</b> The date is today. Change it only if the tools are due back on another day.</li>
-  <li>Tap <b>Check out</b> in the bar at the bottom. Read the summary and tap <b>Confirm</b>.</li>
+  <li><b>Confirm the student.</b> Tap <b>Scan student QR</b> and point the camera at the student card, or type the student number. Tap <b>Confirm student</b> (or press Enter).</li>
+  <li><b>Scan each tool.</b> Point the camera at the tool's QR label. It appears under <b>To check out</b>. If a label is damaged, type its number (for example <kbd>42</kbd> for TL-042) and press Enter.</li>
+  <li><b>Check the return date.</b> It starts as today. Change it only if the tools are due back on another day.</li>
+  <li><b>Check out.</b> Tap <b>Check out</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
 </ol>
-<div class="note">The list clears straight away. A short message appears at the bottom with an <b>Undo</b> button. See <i>Undo a mistake</i> below.</div>
+<p class="step-end">The list clears straight away. A short message with an <b>Undo</b> button appears for about 10 seconds. See <a href="#undo">Undo a mistake</a>.</p>
 
-<h2>The bar at the bottom</h2>
-<p>While you are signed in, a bar runs along the bottom of the screen. It shows how many tools are waiting to be checked out or in, and it has one main button:</p>
-<ul>
-  <li>If tools are waiting to be checked out, the button says <b>Check out</b> with the number. Tap it to check them out. The student must be confirmed first.</li>
-  <li>If you have ticked tools from a student's list, the button says <b>Check in</b> with the number ticked.</li>
-  <li>If only tools to check in are waiting, the button says <b>Check in</b> with that number.</li>
-</ul>
-<p>The bar is the only place to save, so both check out and check in happen from here. It still asks you to <b>Confirm</b> first. If the button is grey, there is nothing to save yet.</p>
+<h2 id="accessories">5. Take accessories</h2>
+<p>Accessories have a family label, for example <b>DB</b> for drill bits. Scanning it opens the list of items in that family. Items are shown by name, so there is no code to read.</p>
+<ol>
+  <li><b>Confirm the student first.</b></li>
+  <li><b>Scan the family label</b>, for example <b>DB</b>. You can also type <kbd>DB</kbd> in the box under the scanner and press Enter.</li>
+  <li><b>Tap the item</b> you need, for example <i>Drill bit 3 mm</i>, and tap <b>Add to check out</b>. Each addition is one item.</li>
+  <li><b>Take another</b> by scanning the label again and repeating step 3.</li>
+  <li><b>Check out.</b> Tap <b>Check out</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+<div class="tip"><b>Shortcut:</b> if you know the item code, type it in the box, for example <kbd>WR-2.5</kbd>, and press Enter. The picker opens with that item already selected.</div>
 
-<h2>Drill bits, sandpaper and other accessories</h2>
-<p>Accessories have their own QR label, for example <b>DB</b> for drill bits. Scan the label to open the list of items in that family. Items are shown by name, so you never need to read a code.</p>
-<h3>Taking out a drill bit (one at a time)</h3>
+<h2 id="consumables">6. Take consumables</h2>
+<p>Consumables are used up, so there is nothing to bring back.</p>
 <ol>
-  <li>Confirm the student first.</li>
-  <li>Scan the label, for example <b>DB</b>. Or type <kbd>DB</kbd> in the box under the scanner and press Enter.</li>
-  <li>To go straight to one item, type its code in the box, for example <kbd>WR-2.5</kbd>, and press Enter. The picker opens with that item selected.</li>
-  <li>Tap the item you need, for example <i>Drill bit 3 mm</i>, and tap <b>Add to check out</b>.</li>
-  <li>To take another one, scan the label again. Each scan adds one item.</li>
-  <li>Tap <b>Check out</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+  <li><b>Confirm the student</b>, then scan the family label, for example <b>SP</b>, and tap the item.</li>
+  <li><b>Set how many.</b> It starts at 1. Tap <b>+</b> or <b>−</b> to change it. The total price updates as you do.</li>
+  <li><b>Add it.</b> Tap <b>Add to check out</b>. Repeat for any other items.</li>
+  <li><b>Check out.</b> Tap <b>Check out</b> in the bar at the bottom. Read the summary, tell the student the <b>Total to pay</b>, and tap <b>Confirm</b>.</li>
 </ol>
-<h3>Taking out sandpaper or welding rods</h3>
-<ol>
-  <li>Scan the label, for example <b>SP</b>, and choose the item.</li>
-  <li><b>How many</b> starts at 1. Tap <b>+</b> or <b>−</b> to change it. The total price updates as you do.</li>
-  <li>Tap <b>Add to check out</b>, then check out from the bar at the bottom.</li>
-</ol>
-<p>Sandpaper and welding rods are used up, so there is nothing to bring back.</p>
-<div class="note"><b>Telling the student the price.</b> Each sandpaper and welding rod block shows its price. Before you confirm, the summary shows the price of each item and the <b>Total to pay</b>. Tell the student that total. After saving, the message also shows what was taken and its total.</div>
-<h3>Giving back a drill bit</h3>
-<ol>
-  <li>Confirm the student. Each item they have out has its own row.</li>
-  <li>Tick each item that comes back. Tick one row for each item.</li>
-  <li>Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
-</ol>
-<div class="note">An item that is <b>light red</b> is low on stock. Tell the lecturer so it can be reordered. An item that is <b>dark red</b> says <b>No stock</b> and cannot be picked.</div>
+<div class="tip"><b>Prices.</b> Each block shows the price of one item. The summary before you confirm shows the price and total of each line. After saving, the message shows what was taken and its total.</div>
 
-<h2>Check a tool back in</h2>
+<h2 id="check-in">7. Check in a tool</h2>
 <div class="figs">
   <figure>
     <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -181,76 +215,84 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
       <rect x="106" y="46" width="34" height="28" rx="3"/>
       <path d="M106 56h34"/>
     </svg>
-    <figcaption>Tool comes back in</figcaption>
+    <figcaption>The tool comes back in</figcaption>
   </figure>
 </div>
+<p>There are two ways to check a tool in. Use whichever is quicker.</p>
 <h3>Option A: scan the tool</h3>
 <ol>
   <li>Scan the tool's QR label, or type its number.</li>
-  <li>The tool appears under <b>To check in</b>. Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+  <li>It appears under <b>To check in</b>. Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
 </ol>
 <h3>Option B: from the student's list</h3>
 <ol>
   <li>Confirm the student. Their tools appear under <b>Out to this student</b>.</li>
-  <li>Tap each tool that has come back. Its row turns green. Tap again to unselect it.</li>
-  <li>Tap <b>Check in</b> in the bar at the bottom. It shows how many ticked tools you are checking in. Read the summary and tap <b>Confirm</b>.</li>
+  <li>Tap each tool that has come back. Its row turns green. Tap it again to unselect it.</li>
+  <li>Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
 </ol>
 
-<h2>Find out who has a tool</h2>
+<h2 id="return-acc">8. Return accessories</h2>
+<ol>
+  <li><b>Confirm the student.</b> Each accessory they have out has its own row.</li>
+  <li><b>Tick one row for each item</b> that is coming back.</li>
+  <li><b>Check in.</b> Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+
+<h2 id="who">9. Who has this tool?</h2>
+<p>This only looks up a tool. It does not change anything.</p>
 <ol>
   <li>Tap <b>Who has this?</b> above the scan box.</li>
   <li>Scan the tool's label, or type its number.</li>
-  <li>A card shows who the tool is out to, the year, and the return date. An available tool says <i>Not out to anyone</i>.</li>
-  <li>Tap <b>Add to lists</b> to go back to checking tools out and in.</li>
+  <li>A card shows who the tool is out to, their year, and the return date. An available tool says <i>Not out to anyone</i>.</li>
+  <li>Tap <b>Add to lists</b> to go back to checking items out and in.</li>
 </ol>
-<p>Looking up a tool does not change anything.</p>
 
-<h2>Scan feedback</h2>
-<p>Every scan gives a clear response, so you don't have to look at the list to know it worked.</p>
+<h2 id="undo">10. Undo a mistake</h2>
+<ol>
+  <li>After a save, a message appears at the bottom with an <b>Undo</b> button. It stays for about 10 seconds.</li>
+  <li>Tap <b>Undo</b> to reverse the save. Tools checked out are checked back in. Tools checked in are signed out to the same student again.</li>
+</ol>
+<div class="tip">
+  <b>What undo cannot do.</b> It works for tools only, and only for the most recent save. Refreshing the page or signing out clears it. Accessories and consumables cannot be undone from the app. If one was taken by mistake, tell the lecturer so the stock can be corrected from the Log.
+</div>
+
+<h2 id="feedback">11. Scan feedback and colours</h2>
+<p>Every scan gives a clear response, so you don't have to check the list to know it worked.</p>
 <div class="figs">
   <figure>
     <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="80" cy="55" r="38"/><path d="M62 56l13 13 24-26"/>
     </svg>
-    <figcaption>Good scan: a green tick flashes</figcaption>
+    <figcaption>Good scan: a green tick</figcaption>
   </figure>
   <figure>
     <svg viewBox="0 0 160 110" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <circle cx="80" cy="55" r="38"/><path d="M66 42l28 28M94 42l-28 28"/>
     </svg>
-    <figcaption>Problem: a red cross flashes</figcaption>
+    <figcaption>Problem: a red cross</figcaption>
   </figure>
 </div>
-<p>The tool's row also flashes green in the list. A beep and vibration sound on Android phones. iPhones show the flash only.</p>
-
-<h2>What the colours mean</h2>
+<p>The item's row also flashes green in the list. Android phones beep and vibrate. iPhones show the flash only.</p>
+<h3>Colour key</h3>
 <div class="key">
   <div><span class="sw good"></span><span><b>Green flash:</b> the scan worked.</span></div>
-  <div><span class="sw bad"></span><span><b>Red flash:</b> the label isn't a storeroom tool, or the tool can't be found.</span></div>
+  <div><span class="sw bad"></span><span><b>Red flash:</b> the label is not a storeroom item, or it cannot be found.</span></div>
   <div><span class="sw due"></span><span><b>Light red row:</b> due back today.</span></div>
   <div><span class="sw late"></span><span><b>Dark red row:</b> overdue. Shown first in the student's list, with a banner.</span></div>
   <div><span class="sw picked"></span><span><b>Green row:</b> selected for check-in.</span></div>
-  <div><span class="sw lowstock"></span><span><b>Light red block (picker):</b> low stock. Reorder soon.</span></div>
+  <div><span class="sw lowstock"></span><span><b>Light red block (picker):</b> low stock. Tell the lecturer so it can be reordered.</span></div>
   <div><span class="sw nostock"></span><span><b>Dark red block (picker):</b> no stock. It cannot be picked.</span></div>
 </div>
 
-<h2>Undo a mistake</h2>
-<ol>
-  <li>After a save, a message appears at the bottom with an <b>Undo</b> button. It stays for about 10 seconds.</li>
-  <li>Tap <b>Undo</b> to reverse the save. Tools checked out come back in. Tools checked in are signed out to the same student again.</li>
-</ol>
-<p>Only the most recent save can be undone. If you refresh the page or sign out, the undo is lost, so check the Log sheet instead.</p>
-<p>Undo reverses tools only. Drill bits, sandpaper and welding rods cannot be undone from the app. If one was taken by mistake, tell the lecturer so the stock can be corrected.</p>
-
-<h2>Students: see your own tools</h2>
-<p>Students don't need a PIN. On the first screen they:</p>
+<h2 id="students">12. Students</h2>
+<p>Students do not need a PIN. On the first screen they:</p>
 <ol>
   <li>Scan their student card, or type their student number.</li>
-  <li>Their workshop tools and return dates appear straight away. Overdue tools are dark red and listed first.</li>
+  <li>Their tools, accessories and return dates appear straight away. Overdue tools are dark red and listed first.</li>
 </ol>
-<p>Students see only their own tools, return dates, and accessories. Accessories show the date they were taken. They have no return date, so students return them to the storeroom when they have finished with them.</p>
+<p class="step-end">Students see only their own items. Accessories show the date they were taken. They have no return date, so students return them to the storeroom when they have finished with them.</p>
 
-<h2>If something goes wrong</h2>
+<h2 id="trouble">13. If something goes wrong</h2>
 <div class="wrap">
 <table>
   <tr><th>What you see</th><th>What to do</th></tr>
@@ -258,25 +300,25 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <tr><td>The image is too small or blurry</td><td>On Android, drag the <b>Zoom in</b> slider. On iPhone, move the phone closer to the label, about 15 to 20 cm away.</td></tr>
   <tr><td>"That QR code is not a storeroom tool"</td><td>The label may be damaged or from another item. Type the number instead.</td></tr>
   <tr><td>"Tool is already out"</td><td>Someone has already checked it out. Use <b>Who has this?</b> to find out who.</td></tr>
-  <tr><td>"Session expired. Sign in again."</td><td>You were inactive for 10 minutes. Sign in again. Your list may be empty, so check what you had before.</td></tr>
-  <tr><td>"Could not reach the storeroom server"</td><td>There is no signal or Wi-Fi. Wait a moment and try again. Nothing is saved until the server answers.</td></tr>
   <tr><td>"Only 3 of Drill bit 3 mm in stock"</td><td>There are not enough on the shelf. Choose a smaller number, or check the shelf and tell the lecturer if the count looks wrong.</td></tr>
-  <tr><td>"Confirm a student first"</td><td>Accessories are recorded against a student. Confirm the student, then scan the label again.</td></tr>
-  <tr><td>The label does nothing</td><td>Check that it is the family code, for example DB. If it still does nothing, type the code in the box under the scanner instead.</td></tr>
+  <tr><td>"Confirm a student first"</td><td>Accessories and consumables are recorded against a student. Confirm the student, then scan the label again.</td></tr>
+  <tr><td>The family label does nothing</td><td>Check that it is the family code, for example DB. If it still does nothing, type the code in the box under the scanner instead.</td></tr>
+  <tr><td>"Session expired. Sign in again."</td><td>You were inactive for 10 minutes. Sign in again. Check your list, because it may be empty.</td></tr>
+  <tr><td>"Could not reach the storeroom server"</td><td>There is no signal or Wi-Fi. Wait a moment and try again. Nothing is saved until the server answers.</td></tr>
   <tr><td>"Student number not found"</td><td>Check the number on the student card. Ask the lecturer to add the student if they are missing.</td></tr>
 </table>
 </div>
 
 <div class="note warn">
-  <b>Keep your PIN private.</b> Don't share it, and sign out when you leave the storeroom.
+  <b>Keep your PIN private.</b> Do not share it, and sign out when you leave the storeroom.
 </div>
+
+</main>
 
 <footer>
   Workshop Tools · Product and Industrial Design workshop, Cape Peninsula University of Technology<br>
   Updated 27 October 2026
 </footer>
-
-</main>
 
 </body>
 </html>
