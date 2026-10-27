@@ -1,5 +1,7 @@
 // ============================================================
-// Workshop Tools - Apps Script (v17)
+// Workshop Tools - Apps Script (v18)
+// v18: families. Drill bits, sanding paper and similar items, each on its own tab named after the family.
+// Accessories go out and come back. Consumables are used up. The Log now records quantity (I), unit cost (J) and total (K).
 // v17: a small "ping" request the scanner sends every few minutes while staff are signed in, to keep the server responsive.
 // v16: tool lookups return dueDate (yyyy-MM-dd), used by the scanner's Undo.
 // v15: staff pages header renamed to Workshop Tools. Otherwise the same as v14.
@@ -462,6 +464,9 @@ function apiRoute(p) {
     case 'mytools':  return apiMyTools(p.no);
     case 'checkout': return apiCheckout(p.token, ids, p.no, p.ret);
     case 'checkin':  return apiCheckin(p.token, ids);
+    case 'family':   return apiFamily(p.token, p.qr);
+    case 'take':     return apiTake(p.token, p.no, p.lines);
+    case 'return':   return apiReturnItems(p.token, p.no, p.lines);
     default: throw new Error('Unknown request');
   }
 }
@@ -531,7 +536,7 @@ function apiHolding(token, no) {
     })
     .sort((a, b) => a.dueTime - b.dueTime)
     .map(({ dueTime, ...rest }) => rest);
-  return { items: items };
+  return { items: items, accessories: accessoriesHeld(no) };
 }
 
 // Student self-service: the workshop tools signed out to this student, with return dates.
@@ -611,6 +616,194 @@ function apiCheckin(token, ids) {
       done.push(id);
     });
     return { done: done, notOut: notOut };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ============================================================
+// v18: families (drill bits, sanding paper and similar items)
+// Each family has its own tab, named exactly as the Family column on the Families tab.
+// Families tab columns: Family | Group | QR Code.
+// Item tab columns: Code | Size or Grit | Stock (and Unit cost, Minimum for consumables).
+// Columns are found by their heading, so their order does not matter.
+// ============================================================
+
+const FAMILIES = 'Families';
+const LOG_QTY = 8;    // Log column I (zero-based index)
+const LOG_COST = 9;   // Log column J
+const LOG_TOTAL = 10; // Log column K
+
+function familyRows() {
+  const rows = SpreadsheetApp.getActive().getSheetByName(FAMILIES).getDataRange().getValues();
+  const head = rows[0].map(h => String(h).trim().toLowerCase());
+  const iF = head.indexOf('family'), iG = head.indexOf('group'), iQ = head.indexOf('qr code');
+  if (iF < 0 || iQ < 0) throw new Error('Families tab needs Family and QR Code headings');
+  return rows.slice(1)
+    .filter(r => String(r[iF]).trim() !== '')
+    .map(r => ({
+      family: String(r[iF]).trim(),
+      group: iG >= 0 ? String(r[iG]).trim() : '',
+      qr: String(r[iQ]).trim().toUpperCase()
+    }));
+}
+
+function isConsumable(group) {
+  return String(group || '').trim().toLowerCase() === 'consumables';
+}
+
+// Reads one family's tab. Columns are found by heading.
+function familyTab(family) {
+  const sh = SpreadsheetApp.getActive().getSheetByName(family);
+  if (!sh) throw new Error('Tab missing for ' + family);
+  const rows = sh.getDataRange().getValues();
+  const head = rows[0].map(h => String(h).trim().toLowerCase());
+  const col = {
+    code: head.indexOf('code'), stock: head.indexOf('stock'),
+    cost: head.indexOf('unit cost'), min: head.indexOf('minimum')
+  };
+  if (col.code < 0 || col.stock < 0) throw new Error(family + ' tab needs Code and Stock headings');
+  return { sheet: sh, rows: rows, col: col };
+}
+
+function itemFrom(tab, r) {
+  const stock = Number(r[tab.col.stock]) || 0;
+  const min = tab.col.min >= 0 ? Number(r[tab.col.min]) || 0 : 0;
+  return {
+    code: String(r[tab.col.code]).trim().toUpperCase(),
+    label: String(r[1]).trim(),          // second column: size or grit
+    stock: stock,
+    unitCost: tab.col.cost >= 0 ? Number(r[tab.col.cost]) || 0 : 0,
+    minimum: min,
+    low: min > 0 && stock <= min
+  };
+}
+
+// Item codes begin with their family's QR code, so DB-5.0 belongs to the family with QR code DB.
+function familyForItem(code, fams) {
+  const prefix = String(code).split('-')[0].trim().toUpperCase();
+  return fams.find(f => f.qr === prefix) || null;
+}
+
+// Parses "DB-5.0:2,SP-120:3" into [{code, qty}].
+function parseLines(text) {
+  return String(text || '').split(',').map(s => s.trim()).filter(Boolean).map(s => {
+    const m = /^(.+):(\d+)$/.exec(s);
+    if (!m) throw new Error('Bad line: ' + s);
+    return { code: m[1].trim().toUpperCase(), qty: parseInt(m[2], 10) };
+  });
+}
+
+// Scanning a family's QR code: the family name and all its items with stock.
+function apiFamily(token, qr) {
+  staffFromToken(token);
+  const f = familyRows().find(x => x.qr === String(qr || '').trim().toUpperCase());
+  if (!f) throw new Error('Family not found');
+  const tab = familyTab(f.family);
+  const items = tab.rows.slice(1)
+    .filter(r => String(r[tab.col.code]).trim() !== '')
+    .map(r => itemFrom(tab, r));
+  return { family: f.family, group: f.group, items: items };
+}
+
+// Accessories still out to a student: Out minus In, from the Log's quantity column.
+// Tool lines have no quantity, so they are skipped here.
+function accessoriesHeld(no) {
+  const log = SpreadsheetApp.getActive().getSheetByName(LOG).getDataRange().getValues();
+  const net = new Map();
+  log.slice(1).forEach(r => {
+    if (String(r[3]).trim() !== String(no).trim()) return;
+    const qty = Number(r[LOG_QTY]);
+    if (!qty) return;
+    const code = String(r[1]).trim().toUpperCase();
+    const dir = r[2] === 'Out' ? 1 : r[2] === 'In' ? -1 : 0;
+    net.set(code, (net.get(code) || 0) + dir * qty);
+  });
+  const fams = familyRows();
+  const out = [];
+  net.forEach((qty, code) => {
+    if (qty <= 0) return;
+    const f = familyForItem(code, fams);
+    if (!f || isConsumable(f.group)) return;
+    const tab = familyTab(f.family);
+    const row = tab.rows.slice(1).find(r => String(r[tab.col.code]).trim().toUpperCase() === code);
+    out.push({ code: code, qty: qty, label: row ? String(row[1]).trim() : '', family: f.family });
+  });
+  return out;
+}
+
+// Takes items out to the current student. Accessories are expected back; consumables are used up.
+// Every line is checked before anything is written, so a bad line takes nothing.
+function apiTake(token, no, text) {
+  const staff = staffFromToken(token);
+  const holder = studentLookup(no);
+  if (!holder) throw new Error('Student number not found');
+  const lines = parseLines(text);
+  if (!lines.length) throw new Error('Nothing to take');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const ss = SpreadsheetApp.getActive(), log = ss.getSheetByName(LOG);
+    const fams = familyRows();
+    const plan = lines.map(l => {
+      const f = familyForItem(l.code, fams);
+      if (!f) throw new Error('Unknown item: ' + l.code);
+      const tab = familyTab(f.family);
+      const idx = tab.rows.findIndex((r, i) => i > 0 && String(r[tab.col.code]).trim().toUpperCase() === l.code);
+      if (idx < 0) throw new Error('Unknown item: ' + l.code);
+      const item = itemFrom(tab, tab.rows[idx]);
+      if (!(l.qty >= 1)) throw new Error('Quantity must be at least 1');
+      if (l.qty > item.stock) throw new Error('Only ' + item.stock + ' of ' + l.code + ' in stock');
+      return { l: l, f: f, tab: tab, row: idx + 1, item: item };
+    });
+
+    const now = new Date();
+    plan.forEach(p => {
+      const used = isConsumable(p.f.group);
+      p.tab.sheet.getRange(p.row, p.tab.col.stock + 1).setValue(p.item.stock - p.l.qty);
+      const cost = used ? p.item.unitCost : '';
+      const total = used ? Math.round(p.item.unitCost * p.l.qty * 100) / 100 : '';
+      log.appendRow([now, p.l.code, used ? 'Used' : 'Out', String(no), holder, staff.id, staff.name, 'Scanner',
+        p.l.qty, cost, total]);
+    });
+    return { holder: holder, done: plan.map(p => ({ code: p.l.code, qty: p.l.qty })) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Returns accessories. Only what this student actually has out can come back.
+function apiReturnItems(token, no, text) {
+  const staff = staffFromToken(token);
+  const holder = studentLookup(no);
+  if (!holder) throw new Error('Student number not found');
+  const lines = parseLines(text);
+  if (!lines.length) throw new Error('Nothing to return');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    const ss = SpreadsheetApp.getActive(), log = ss.getSheetByName(LOG);
+    const fams = familyRows();
+    const held = new Map(accessoriesHeld(no).map(a => [a.code, a.qty]));
+    const plan = lines.map(l => {
+      const f = familyForItem(l.code, fams);
+      if (!f || isConsumable(f.group)) throw new Error(l.code + ' is not a returnable item');
+      const tab = familyTab(f.family);
+      const idx = tab.rows.findIndex((r, i) => i > 0 && String(r[tab.col.code]).trim().toUpperCase() === l.code);
+      if (idx < 0) throw new Error('Unknown item: ' + l.code);
+      const have = held.get(l.code) || 0;
+      if (!(l.qty >= 1) || l.qty > have) throw new Error(holder + ' has ' + have + ' of ' + l.code + ' out');
+      return { l: l, tab: tab, row: idx + 1, item: itemFrom(tab, tab.rows[idx]) };
+    });
+
+    const now = new Date();
+    plan.forEach(p => {
+      p.tab.sheet.getRange(p.row, p.tab.col.stock + 1).setValue(p.item.stock + p.l.qty);
+      log.appendRow([now, p.l.code, 'In', String(no), holder, staff.id, staff.name, 'Scanner', p.l.qty, '', '']);
+    });
+    return { holder: holder, done: lines };
   } finally {
     lock.releaseLock();
   }
