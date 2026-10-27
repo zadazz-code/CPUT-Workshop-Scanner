@@ -142,6 +142,31 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
 </ul>
 <p>The bar is the only place to save, so both check out and check in happen from here. It still asks you to <b>Confirm</b> first. If the button is grey, there is nothing to save yet.</p>
 
+<h2>Drill bits, sandpaper and other accessories</h2>
+<p>Accessories have their own QR label, for example <b>DB</b> for drill bits. Scan the label to open the list of items in that family. Items are shown by name, so you never need to read a code.</p>
+<h3>Taking out a drill bit (one at a time)</h3>
+<ol>
+  <li>Confirm the student first.</li>
+  <li>Scan the label, for example <b>DB</b>. Or type <kbd>DB</kbd> in the box under the scanner and press Enter.</li>
+  <li>Choose the item from the list, for example <i>Drill bit 3 mm</i>, and tap <b>Add to check out</b>.</li>
+  <li>To take another one, scan the label again. Each scan adds one item.</li>
+  <li>Tap <b>Check out</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+<h3>Taking out sandpaper or welding rods</h3>
+<ol>
+  <li>Scan the label, for example <b>SP</b>, and choose the item.</li>
+  <li><b>How many</b> starts at 1. Change it if the student needs more.</li>
+  <li>Tap <b>Add to check out</b>, then check out from the bar at the bottom.</li>
+</ol>
+<p>Sandpaper and welding rods are used up, so there is nothing to bring back.</p>
+<h3>Giving back a drill bit</h3>
+<ol>
+  <li>Confirm the student. Each item they have out has its own row.</li>
+  <li>Tick each item that comes back. Tick one row for each item.</li>
+  <li>Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
+</ol>
+<div class="note">If the list shows <b>LOW</b> next to an item, it is at or below its minimum stock. Tell the lecturer so it can be reordered.</div>
+
 <h2>Check a tool back in</h2>
 <div class="figs">
   <figure>
@@ -209,6 +234,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <li>Tap <b>Undo</b> to reverse the save. Tools checked out come back in. Tools checked in are signed out to the same student again.</li>
 </ol>
 <p>Only the most recent save can be undone. If you refresh the page or sign out, the undo is lost, so check the Log sheet instead.</p>
+<p>Undo reverses tools only. Drill bits, sandpaper and welding rods cannot be undone from the app. If one was taken by mistake, tell the lecturer so the stock can be corrected.</p>
 
 <h2>Students: see your own tools</h2>
 <p>Students don't need a PIN. On the first screen they:</p>
@@ -216,7 +242,7 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <li>Scan their student card, or type their student number.</li>
   <li>Their workshop tools and return dates appear straight away. Overdue tools are dark red and listed first.</li>
 </ol>
-<p>Students see only their own tools and return dates. Staff don't need to do anything for this.</p>
+<p>Students see only their own tools, return dates, and accessories. Accessories show the date they were taken. They have no return date, so students return them to the storeroom when they have finished with them.</p>
 
 <h2>If something goes wrong</h2>
 <div class="wrap">
@@ -228,6 +254,9 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <tr><td>"Tool is already out"</td><td>Someone has already checked it out. Use <b>Who has this?</b> to find out who.</td></tr>
   <tr><td>"Session expired. Sign in again."</td><td>You were inactive for 10 minutes. Sign in again. Your list may be empty, so check what you had before.</td></tr>
   <tr><td>"Could not reach the storeroom server"</td><td>There is no signal or Wi-Fi. Wait a moment and try again. Nothing is saved until the server answers.</td></tr>
+  <tr><td>"Only 3 of Drill bit 3 mm in stock"</td><td>There are not enough on the shelf. Choose a smaller number, or check the shelf and tell the lecturer if the count looks wrong.</td></tr>
+  <tr><td>"Confirm a student first"</td><td>Accessories are recorded against a student. Confirm the student, then scan the label again.</td></tr>
+  <tr><td>The label does nothing</td><td>Check that it is the family code, for example DB. If it still does nothing, type the code in the box under the scanner instead.</td></tr>
   <tr><td>"Student number not found"</td><td>Check the number on the student card. Ask the lecturer to add the student if they are missing.</td></tr>
 </table>
 </div>
