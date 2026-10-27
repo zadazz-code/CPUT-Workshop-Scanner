@@ -309,8 +309,19 @@ function touch(){ last = Date.now(); }
 setInterval(() => {
   if (S.token && Date.now() - last > IDLE_MS) lockOut('Signed out after 10 minutes without activity.');
 }, 5000);
+// Leaving the app (switching away, locking the phone, or closing it) signs the staff member out.
+// On return the screen starts empty, so no student or checkout list from before is still showing.
+const LEAVE_MS = 30 * 1000;
+let leftAt = 0;
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && S.token && Date.now() - last > IDLE_MS) lockOut('Signed out after 10 minutes without activity.');
+  if (document.hidden) { leftAt = Date.now(); return; }
+  const away = leftAt ? Date.now() - leftAt : 0;
+  leftAt = 0;
+  if (S.token && (away > LEAVE_MS || Date.now() - last > IDLE_MS)) lockOut('Signed out after leaving the app. Sign in again.');
+});
+// iPhones can restore a page from memory when a home-screen app is reopened. Treat that as leaving the app.
+window.addEventListener('pageshow', e => {
+  if (e.persisted && S.token) lockOut('Signed out after leaving the app. Sign in again.');
 });
 
 // ---------- Sign in / out ----------
