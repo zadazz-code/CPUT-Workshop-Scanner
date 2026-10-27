@@ -56,6 +56,8 @@ figcaption{font-size:15px;color:var(--muted);margin-top:6px}
 .sw.due{background:var(--due);border-color:var(--late)}
 .sw.late{background:var(--late);border-color:var(--bad)}
 .sw.picked{background:#c8e6c9;border-color:#2e7d32}
+.sw.lowstock{background:#ffcdd2;border-color:#e57373}
+.sw.nostock{background:#b71c1c;border-color:#7f0000}
 .note{background:var(--card);border-left:6px solid var(--accent);border-radius:8px;padding:12px 14px;margin:16px 0}
 .warn{border-left-color:var(--bad)}
 table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
@@ -149,24 +151,25 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <li>Confirm the student first.</li>
   <li>Scan the label, for example <b>DB</b>. Or type <kbd>DB</kbd> in the box under the scanner and press Enter.</li>
   <li>To go straight to one item, type its code in the box, for example <kbd>WR-2.5</kbd>, and press Enter. The picker opens with that item selected.</li>
-  <li>Choose the item from the list, for example <i>Drill bit 3 mm</i>, and tap <b>Add to check out</b>.</li>
+  <li>Tap the item you need, for example <i>Drill bit 3 mm</i>, and tap <b>Add to check out</b>.</li>
   <li>To take another one, scan the label again. Each scan adds one item.</li>
   <li>Tap <b>Check out</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
 </ol>
 <h3>Taking out sandpaper or welding rods</h3>
 <ol>
   <li>Scan the label, for example <b>SP</b>, and choose the item.</li>
-  <li><b>How many</b> starts at 1. Change it if the student needs more.</li>
+  <li><b>How many</b> starts at 1. Tap <b>+</b> or <b>−</b> to change it. The total price updates as you do.</li>
   <li>Tap <b>Add to check out</b>, then check out from the bar at the bottom.</li>
 </ol>
 <p>Sandpaper and welding rods are used up, so there is nothing to bring back.</p>
+<div class="note"><b>Telling the student the price.</b> Each sandpaper and welding rod block shows its price. Before you confirm, the summary shows the price of each item and the <b>Total to pay</b>. Tell the student that total. After saving, the message also shows what was taken and its total.</div>
 <h3>Giving back a drill bit</h3>
 <ol>
   <li>Confirm the student. Each item they have out has its own row.</li>
   <li>Tick each item that comes back. Tick one row for each item.</li>
   <li>Tap <b>Check in</b> in the bar at the bottom, read the summary, and tap <b>Confirm</b>.</li>
 </ol>
-<div class="note">If the list shows <b>LOW</b> next to an item, it is at or below its minimum stock. Tell the lecturer so it can be reordered.</div>
+<div class="note">An item that is <b>light red</b> is low on stock. Tell the lecturer so it can be reordered. An item that is <b>dark red</b> says <b>No stock</b> and cannot be picked.</div>
 
 <h2>Check a tool back in</h2>
 <div class="figs">
@@ -227,6 +230,8 @@ footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-si
   <div><span class="sw due"></span><span><b>Light red row:</b> due back today.</span></div>
   <div><span class="sw late"></span><span><b>Dark red row:</b> overdue. Shown first in the student's list, with a banner.</span></div>
   <div><span class="sw picked"></span><span><b>Green row:</b> selected for check-in.</span></div>
+  <div><span class="sw lowstock"></span><span><b>Light red block (picker):</b> low stock. Reorder soon.</span></div>
+  <div><span class="sw nostock"></span><span><b>Dark red block (picker):</b> no stock. It cannot be picked.</span></div>
 </div>
 
 <h2>Undo a mistake</h2>
