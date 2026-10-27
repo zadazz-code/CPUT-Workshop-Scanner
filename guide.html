@@ -62,14 +62,32 @@ table{width:100%;border-collapse:collapse;margin:10px 0;font-size:17px}
 td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
 .wrap{overflow-x:auto}
 kbd{font:600 16px ui-monospace,Menlo,Consolas,monospace;border:2px solid var(--line);border-radius:6px;padding:0 6px;background:var(--card)}
+ul{padding-left:22px;margin:10px 0}
+ul li{margin:6px 0}
+.brand{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.logo{height:40px;width:auto;background:#fff;border-radius:6px;padding:4px 8px;display:block}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:18px 0 4px}
+.quick div{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--accent);border-radius:10px;padding:12px}
+.quick b{display:block;color:var(--accent-dark);font-size:18px;margin-bottom:4px}
+.quick span{font-size:16px;color:var(--muted);line-height:1.4;display:block}
+@media (max-width:520px){.quick{grid-template-columns:1fr}}
+footer{margin-top:40px;padding-top:14px;border-top:1px solid var(--line);font-size:15px;color:var(--muted)}
+@media print{body{background:#fff;color:#000}.note,figure,.quick div{break-inside:avoid}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 </style>
 <main>
 
 <header>
+  <div class="brand"><img class="logo" src="logo.png" alt="Product and Industrial Design"></div>
   <h1>Workshop Tools Guide</h1>
   <p class="lead">How to check tools out and in, and how to find out who has a tool. For workshop staff.</p>
 </header>
+
+<div class="quick" aria-label="Quick reference">
+  <div><b>Check out</b><span>Scan the student, scan the tools, then tap <b>Check out</b> in the bar.</span></div>
+  <div><b>Check in</b><span>Scan the tool, or tick it in the student's list, then tap <b>Check in</b> in the bar.</span></div>
+  <div><b>Who has this?</b><span>Switch to it above the scan box and scan the tool.</span></div>
+</div>
 
 <h2>What you need</h2>
 <p>Your phone, your staff PIN, and the Workshop Tools app. Open it from the home-screen icon, or from the link you were given.</p>
@@ -217,6 +235,11 @@ kbd{font:600 16px ui-monospace,Menlo,Consolas,monospace;border:2px solid var(--l
 <div class="note warn">
   <b>Keep your PIN private.</b> Don't share it, and sign out when you leave the storeroom.
 </div>
+
+<footer>
+  Workshop Tools · Product and Industrial Design workshop, Cape Peninsula University of Technology<br>
+  Updated 27 October 2026
+</footer>
 
 </main>
 
