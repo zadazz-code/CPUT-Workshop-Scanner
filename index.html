@@ -201,11 +201,13 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
     <label for="famSel">Choose</label>
     <select id="famSel" onchange="famSelChanged()"></select>
     <p id="famStock" class="small" style="margin:6px 0 0"></p>
-    <label for="famQty">How many</label>
-    <div class="stepper">
-      <button class="ghost" onclick="famStep(-1)">−</button>
-      <input id="famQty" type="number" inputmode="numeric" min="1" value="1" onchange="famQtyFix()">
-      <button class="ghost" onclick="famStep(1)">+</button>
+    <div id="famQtyBox">
+      <label for="famQty">How many</label>
+      <div class="stepper">
+        <button class="ghost" onclick="famStep(-1)">−</button>
+        <input id="famQty" type="number" inputmode="numeric" min="1" value="1" onchange="famQtyFix()">
+        <button class="ghost" onclick="famStep(1)">+</button>
+      </div>
     </div>
     <button id="famOk" onclick="addFamilyLine()">Add to check out</button>
     <button class="ghost" onclick="document.getElementById('famBox').classList.add('hidden')">Cancel</button>
@@ -416,25 +418,20 @@ async function loadHolding(){
 function renderHolding(items, accs){
   holdItems = new Map(items.map(t => [t.id, t]));
   accs = accs || [];
-  $('nHold').textContent = items.length + accs.length;
+  const accUnits = accs.reduce((n, a) => n + a.qty, 0);
+  $('nHold').textContent = items.length + accUnits;
   const toolHtml = items.map(t =>
     '<label class="row' + (t.overdue ? ' late' : '') + '">' +
     '<input type="checkbox" class="hold" value="' + esc(t.id) + '" onchange="pickHold(this)" style="display:none">' +
     '<div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
     '<small>' + (t.overdue ? 'OVERDUE · ' : '') + 'Return by ' + esc(t.due) + '</small></div>' +
     '</label>').join('');
-  // Accessories: the number to return starts at the number out. Set it to 0 to leave them out.
-  const accHtml = accs.map(a => {
-    const id = accInputId(a.code);
-    return '<div class="row"><div style="min-width:0"><div class="id">' + esc(a.code) + ' · ' + esc(a.label) + '</div>' +
-      '<small>Out to this student · ' + a.qty + ' to return</small></div>' +
-      '<div class="stepper sm">' +
-        '<button class="ghost" onclick="accStep(\'' + id + '\',-1)">−</button>' +
-        '<input class="accQty" id="' + id + '" data-code="' + esc(a.code) + '" data-label="' + esc(a.label) +
-          '" data-max="' + a.qty + '" value="' + a.qty + '" inputmode="numeric" onchange="accFix(\'' + id + '\')">' +
-        '<button class="ghost" onclick="accStep(\'' + id + '\',1)">+</button>' +
-      '</div></div>';
-  }).join('');
+  // Accessories: one row per item out, each with its own tick box.
+  const accHtml = accs.flatMap(a => Array.from({ length: a.qty }, () =>
+    '<label class="row"><input type="checkbox" class="accHold" data-code="' + esc(a.code) + '" data-label="' + esc(a.label) +
+    '" onchange="pickHold(this)" style="display:none">' +
+    '<div><div class="id">' + esc(a.code) + ' · ' + esc(a.label) + '</div>' +
+    '<small>Out to this student · tick to return</small></div></label>')).join('');
   $('listHold').innerHTML = (toolHtml + accHtml) || '<p class="small">No tools or accessories are out to this student.</p>';
   updateHoldBtn();
 }
@@ -447,7 +444,7 @@ function pickHold(el){
 
 function updateHoldBtn(){
   updateBar();
-  const n = document.querySelectorAll('input.hold:checked').length + accReturns().length;
+  const n = document.querySelectorAll('input.hold:checked').length + accTicked();
   $('btnHoldIn').textContent = n ? 'Check in selected (' + n + ')' : 'Check in selected';
   $('btnHoldIn').disabled = busy || !n;
 }
@@ -1120,6 +1117,8 @@ function famSelChanged(){
   const it = famItem();
   const kind = famCurrent && isConsumable(famCurrent.group) ? 'used up when taken' : 'comes back';
   $('famStock').textContent = it ? it.stock + ' in stock' + (it.low ? ' · LOW, reorder soon' : '') + ' · ' + kind : '';
+  // Accessories are always one at a time, so only consumables need a quantity.
+  $('famQtyBox').classList.toggle('hidden', !(famCurrent && isConsumable(famCurrent.group)));
   $('famQty').value = 1;
   famQtyFix();
 }
@@ -1142,7 +1141,7 @@ function famStep(d){
 function addFamilyLine(){
   touch();
   const it = famItem();
-  const q = Math.floor(Number($('famQty').value));
+  const q = isConsumable(famCurrent.group) ? Math.floor(Number($('famQty').value)) : 1;
   if (!it || !(q >= 1)) return;
   const have = S.lines.get(it.code);
   const qty = (have ? have.qty : 0) + q;
@@ -1157,13 +1156,17 @@ function addFamilyLine(){
 
 function lineHtml(l){
   const c = esc(l.code);
+  const used = isConsumable(l.group);
+  const controls = used
+    ? '<div class="stepper sm">' +
+        '<button class="ghost" data-code="' + c + '" onclick="lineStep(this.dataset.code,-1)">−</button>' +
+        '<span class="qn">' + l.qty + '</span>' +
+        '<button class="ghost" data-code="' + c + '" onclick="lineStep(this.dataset.code,1)">+</button>' +
+      '</div>'
+    : '<span class="qn">× ' + l.qty + '</span>';
   return '<div class="row" data-id="' + c + '"><div style="min-width:0"><div class="id">' + c + ' · ' + esc(l.family) + ' ' + esc(l.label) + '</div>' +
-    '<small>' + (isConsumable(l.group) ? 'Used up' : 'Comes back') + ' · ' + l.stock + ' in stock</small></div>' +
-    '<div class="stepper sm">' +
-      '<button class="ghost" data-code="' + c + '" onclick="lineStep(this.dataset.code,-1)">−</button>' +
-      '<span class="qn">' + l.qty + '</span>' +
-      '<button class="ghost" data-code="' + c + '" onclick="lineStep(this.dataset.code,1)">+</button>' +
-    '</div>' +
+    '<small>' + (used ? 'Used up' : 'Comes back') + ' · ' + l.stock + ' in stock</small></div>' +
+    controls +
     '<button class="x" data-code="' + c + '" onclick="removeLine(this.dataset.code)">Remove</button></div>';
 }
 
@@ -1184,20 +1187,17 @@ function removeLine(code){
   renderLists();
 }
 
-// Accessories on the holding list: the number to return is typed or stepped.
-function accInputId(code){ return 'acc_' + String(code).replace(/[^A-Za-z0-9]/g, '_'); }
-function accStep(id, d){ accSet(id, (Math.floor(Number($(id).value)) || 0) + d); }
-function accFix(id){ accSet(id, Math.floor(Number($(id).value)) || 0); }
-function accSet(id, v){
-  const el = $(id);
-  const max = Number(el.dataset.max);
-  el.value = Math.max(0, Math.min(max, v));
-  updateHoldBtn();
-}
+// Accessories on the holding list: one tick box per item out, so each one is returned one at a time.
+function accTicked(){ return document.querySelectorAll('input.accHold:checked').length; }
 function accReturns(){
-  return Array.from(document.querySelectorAll('input.accQty'))
-    .map(i => ({ code: i.dataset.code, label: i.dataset.label, qty: Math.floor(Number(i.value)) || 0 }))
-    .filter(a => a.qty > 0);
+  const byCode = new Map();
+  document.querySelectorAll('input.accHold:checked').forEach(c => {
+    const k = c.dataset.code;
+    const a = byCode.get(k) || { code: k, label: c.dataset.label, qty: 0 };
+    a.qty += 1;
+    byCode.set(k, a);
+  });
+  return Array.from(byCode.values());
 }
 
 // ---------- Bottom action bar ----------
@@ -1211,7 +1211,7 @@ function updateBar(){
   const items = [...S.items.values()].filter(t => !t.pending);
   const outs = items.filter(t => !t.out).length + S.lines.size;
   const ins = items.filter(t => t.out).length;
-  const ticked = document.querySelectorAll('input.hold:checked').length + accReturns().length;
+  const ticked = document.querySelectorAll('input.hold:checked').length + accTicked();
   bar.classList.toggle('hidden', $('app').classList.contains('hidden'));
 
   const parts = [];
