@@ -467,6 +467,7 @@ function apiRoute(p) {
     case 'family':   return apiFamily(p.token, p.qr);
     case 'take':     return apiTake(p.token, p.no, p.lines);
     case 'return':   return apiReturnItems(p.token, p.no, p.lines);
+    case 'visit':    return apiVisit(p.token, p.no);
     default: throw new Error('Unknown request');
   }
 }
@@ -633,6 +634,7 @@ const FAMILIES = 'Families';
 const LOG_QTY = 8;    // Log column I (zero-based index)
 const LOG_COST = 9;   // Log column J
 const LOG_TOTAL = 10; // Log column K
+const LOG_STOCK = 11; // Log column L: stock left after a consumable is taken
 
 function familyRows() {
   const rows = SpreadsheetApp.getActive().getSheetByName(FAMILIES).getDataRange().getValues();
@@ -774,7 +776,7 @@ function apiTake(token, no, text) {
       const cost = used ? p.item.unitCost : '';
       const total = used ? Math.round(p.item.unitCost * p.l.qty * 100) / 100 : '';
       log.appendRow([now, p.l.code, used ? 'Used' : 'Out', String(no), holder, staff.id, staff.name, 'Scanner',
-        p.l.qty, cost, total]);
+        p.l.qty, cost, total, used ? p.item.stock - p.l.qty : '']);
     });
     return { holder: holder, done: plan.map(p => ({
       code: p.l.code, qty: p.l.qty, label: p.item.label,
@@ -822,4 +824,35 @@ function apiReturnItems(token, no, text) {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+// Consumables this student has taken today (from the Log), so the card survives sign-out and restarts.
+function apiVisit(token, no) {
+  staffFromToken(token);
+  const tz = Session.getScriptTimeZone();
+  const today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const log = SpreadsheetApp.getActive().getSheetByName(LOG).getDataRange().getValues();
+  const fams = familyRows();
+  const tabs = new Map();
+  const labelFor = code => {
+    const f = familyForItem(code, fams);
+    if (!f) return code;
+    if (!tabs.has(f.family)) tabs.set(f.family, familyTab(f.family));
+    const tab = tabs.get(f.family);
+    const row = tab.rows.slice(1).find(x => String(x[tab.col.code]).trim().toUpperCase() === code);
+    return row ? itemFrom(tab, row).label : code;
+  };
+  const takes = log.slice(1)
+    .filter(r => r[2] === 'Used' && String(r[3]).trim() === String(no).trim() && r[0] instanceof Date &&
+      Utilities.formatDate(r[0], tz, 'yyyy-MM-dd') === today)
+    .map(r => ({
+      label: labelFor(String(r[1]).trim().toUpperCase()),
+      qty: Number(r[LOG_QTY]) || 0,
+      unitCost: Number(r[LOG_COST]) || 0,
+      total: Number(r[LOG_TOTAL]) || 0,
+      stockLeft: r[LOG_STOCK] === '' ? null : Number(r[LOG_STOCK]),
+      at: Utilities.formatDate(r[0], tz, 'HH:mm')
+    }));
+  return { takes: takes };
 }

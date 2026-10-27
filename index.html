@@ -459,6 +459,7 @@ async function loadHolding(){
     return;
   }
   const token = S.token, no = S.student.no;
+  loadVisit();
   try {
     const r = await api({ api: 'holding', token: token, no: no });
     if (S.token !== token || !S.student || S.student.no !== no) return;
@@ -1305,7 +1306,21 @@ function accReturns(){
   return Array.from(byCode.values());
 }
 
-// ---------- Consumables taken this visit ----------
+// ---------- Consumables taken today ----------
+// Loaded from the Log whenever a student is confirmed, so it survives sign-out and restarts.
+async function loadVisit(){
+  if (!S.student) return;
+  const token = S.token, no = S.student.no;
+  try {
+    const r = await api({ api: 'visit', token: token, no: no });
+    if (S.token !== token || !S.student || S.student.no !== no) return;
+    S.visitTakes = r.takes;
+    renderVisit();
+  } catch (e) {
+    handleErr(e);
+  }
+}
+
 // Lists each consumable taken for the current student, with the time and stock left, to check a disputed count.
 // Cleared on sign-out, when the student changes, or when the app is restarted.
 let visitOpen = false;
@@ -1319,12 +1334,13 @@ function renderVisit(){
   card.classList.toggle('hidden', !show);
   if (!show) return;
   const total = Math.round(takes.reduce((n, t) => n + t.total, 0) * 100) / 100;
-  $('visitSum').textContent = 'Consumables this visit · ' + takes.length + ' taken · ' + money(total);
+  $('visitSum').textContent = 'Consumables today · ' + takes.length + ' taken · ' + money(total);
   $('visitArrow').textContent = visitOpen ? '▼' : '▲';
   $('visitBody').classList.toggle('hidden', !visitOpen);
   $('visitBody').innerHTML = takes.map(t =>
     '<div class="visitLine"><div class="big">' + esc(t.label) + ' × ' + t.qty + '</div>' +
-    '<small>' + money(t.unitCost) + ' each = ' + money(t.total) + ' · ' + esc(t.at) + ' · ' + t.stockLeft + ' left in stock</small></div>'
+    '<small>' + money(t.unitCost) + ' each = ' + money(t.total) + ' · ' + esc(t.at) +
+      (t.stockLeft == null ? '' : ' · ' + t.stockLeft + ' left in stock') + '</small></div>'
   ).join('') + '<div class="visitLine"><b>Total this visit: ' + money(total) + '</b></div>';
 }
 
