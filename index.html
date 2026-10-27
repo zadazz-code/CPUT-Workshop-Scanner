@@ -705,8 +705,17 @@ $('myNo').addEventListener('input', () => {
 function myToolsHtml(r){
   // Overdue tools first, then the rest in order of return date.
   const items = r.items.slice().sort((a, b) => (b.overdue - a.overdue));
+  const accs = r.accessories || [];
   const head = '<h2>Hi ' + esc(r.name) + ', these are your tools</h2>';
-  if (!items.length) return head + '<p class="small">No tools are signed out to you.</p>';
+  if (!items.length && !accs.length) return head + '<p class="small">No tools or accessories are signed out to you.</p>';
+  // Accessories: one row per item, with the date it was taken. They have no return date.
+  const accHtml = accs.length
+    ? '<h2>Accessories you have</h2>' + accs.flatMap(a => Array.from({ length: a.qty }, () =>
+        '<div class="row"><div><div class="id">' + esc(a.code) + ' · ' + esc(a.label) + '</div>' +
+        '<small>' + (a.taken ? 'Taken ' + esc(a.taken) : 'Taken') + ' · return to the storeroom when finished</small>' +
+        '</div></div>')).join('')
+    : '';
+  if (!items.length) return head + accHtml;
   const late = items.filter(t => t.overdue).length;
   const banner = late
     ? '<div class="stuBanner">You have ' + late + ' overdue tool' + (late > 1 ? 's' : '') +
@@ -717,7 +726,7 @@ function myToolsHtml(r){
     '<div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
     '<small>' + (t.overdue ? 'OVERDUE · ' : t.dueToday ? 'Due back today · ' : '') + 'Return by ' + esc(t.due) + '</small>' +
     '</div></div>').join('') +
-    '<p class="small">Overdue tools are dark red and listed first. Tools due back today are light red.</p>';
+    '<p class="small">Overdue tools are dark red and listed first. Tools due back today are light red.</p>' + accHtml;
 }
 
 function onCode(text){

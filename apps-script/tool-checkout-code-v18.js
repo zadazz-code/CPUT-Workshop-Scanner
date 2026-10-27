@@ -563,7 +563,7 @@ function apiMyTools(no) {
     })
     .sort((a, b) => a.dueTime - b.dueTime)
     .map(({ dueTime, ...rest }) => rest);
-  return { name: String(r[1]).trim(), items: items };
+  return { name: String(r[1]).trim(), items: items, accessories: accessoriesHeld(no) };
 }
 
 // Student and return date are passed on every call, so no 30-minute batch timer is involved.
@@ -710,7 +710,7 @@ function apiFamily(token, qr) {
 // Tool lines have no quantity, so they are skipped here.
 function accessoriesHeld(no) {
   const log = SpreadsheetApp.getActive().getSheetByName(LOG).getDataRange().getValues();
-  const net = new Map();
+  const net = new Map(), since = new Map();
   log.slice(1).forEach(r => {
     if (String(r[3]).trim() !== String(no).trim()) return;
     const qty = Number(r[LOG_QTY]);
@@ -718,6 +718,7 @@ function accessoriesHeld(no) {
     const code = String(r[1]).trim().toUpperCase();
     const dir = r[2] === 'Out' ? 1 : r[2] === 'In' ? -1 : 0;
     net.set(code, (net.get(code) || 0) + dir * qty);
+    if (dir === 1 && !since.has(code)) since.set(code, r[0]); // first time it was taken
   });
   const fams = familyRows();
   const out = [];
@@ -727,7 +728,9 @@ function accessoriesHeld(no) {
     if (!f || isConsumable(f.group)) return;
     const tab = familyTab(f.family);
     const row = tab.rows.slice(1).find(r => String(r[tab.col.code]).trim().toUpperCase() === code);
-    out.push({ code: code, qty: qty, label: row ? String(row[1]).trim() : '', family: f.family });
+    const taken = since.get(code);
+    out.push({ code: code, qty: qty, label: row ? String(row[1]).trim() : '', family: f.family,
+      taken: taken ? Utilities.formatDate(new Date(taken), Session.getScriptTimeZone(), 'd MMM yyyy') : '' });
   });
   return out;
 }
