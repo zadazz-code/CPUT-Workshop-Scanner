@@ -128,7 +128,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 
     <h2>Out to this student (<span id="nHold">0</span>)</h2>
     <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
-    <button id="btnHoldIn" class="secondary" onclick="checkInHolding()" disabled>Check in selected</button>
+    <button id="btnHoldIn" class="secondary hidden" onclick="checkInHolding()" disabled>Check in selected</button>
 
     <h2>Scan tools</h2>
     <div class="card">
@@ -159,11 +159,11 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
     <h2>To check out (<span id="nOut">0</span>)</h2>
     <div id="listOut"></div>
     <p id="outHint" class="small"></p>
-    <button id="btnOut" onclick="checkOut()" disabled>Check out</button>
+    <button id="btnOut" class="hidden" onclick="checkOut()" disabled>Check out</button>
 
     <h2>To check in (<span id="nIn">0</span>)</h2>
     <div id="listIn"></div>
-    <button id="btnIn" class="secondary" onclick="checkIn()" disabled>Check in</button>
+    <button id="btnIn" class="secondary hidden" onclick="checkIn()" disabled>Check in</button>
   </section>
 </main>
 
