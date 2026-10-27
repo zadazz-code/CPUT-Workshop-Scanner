@@ -430,7 +430,7 @@ function renderHolding(items, accs){
   const accHtml = accs.flatMap(a => Array.from({ length: a.qty }, () =>
     '<label class="row"><input type="checkbox" class="accHold" data-code="' + esc(a.code) + '" data-label="' + esc(a.label) +
     '" onchange="pickHold(this)" style="display:none">' +
-    '<div><div class="id">' + esc(a.code) + ' · ' + esc(a.label) + '</div>' +
+    '<div><div class="id">' + esc(a.label) + '</div>' +
     '<small>Out to this student · tick to return</small></div></label>')).join('');
   $('listHold').innerHTML = (toolHtml + accHtml) || '<p class="small">No tools or accessories are out to this student.</p>';
   updateHoldBtn();
@@ -464,7 +464,7 @@ async function checkInHolding(){
   const total = ids.length + accs.reduce((n, a) => n + a.qty, 0);
   const parts = [];
   if (items.length) parts.push(toolLines(items));
-  if (accs.length) parts.push(accs.map(a => esc(a.code) + ' · ' + esc(a.label) + ' × ' + a.qty).join('<br>'));
+  if (accs.length) parts.push(accs.map(a => esc(a.label) + ' × ' + a.qty).join('<br>'));
   const ok = await confirmSave('Check in ' + total + ' item' + (total > 1 ? 's' : '') + '?', parts, 'Check in');
   if (!ok || S.token !== token) return;
   // Remove the ticked rows straight away; the list is reloaded from the server afterwards either way.
@@ -490,7 +490,7 @@ async function checkInHolding(){
       const r2 = await api({ api: 'return', token: token, no: S.student ? S.student.no : '',
         lines: accs.map(a => a.code + ':' + a.qty).join(',') });
       if (S.token !== token) return;
-      msg += (msg ? ' ' : '') + 'Returned ' + r2.done.map(d => d.code + ' × ' + d.qty).join(', ') + '.';
+      msg += (msg ? ' ' : '') + 'Returned ' + r2.done.map(d => (d.label || d.code) + ' × ' + d.qty).join(', ') + '.';
     }
     status(msg, kind, 10000, undo);
   } catch (e) {
@@ -711,7 +711,7 @@ function myToolsHtml(r){
   // Accessories: one row per item, with the date it was taken. They have no return date.
   const accHtml = accs.length
     ? '<h2>Accessories you have</h2>' + accs.flatMap(a => Array.from({ length: a.qty }, () =>
-        '<div class="row"><div><div class="id">' + esc(a.code) + ' · ' + esc(a.label) + '</div>' +
+        '<div class="row"><div><div class="id">' + esc(a.label) + '</div>' +
         '<small>' + (a.taken ? 'Taken ' + esc(a.taken) : 'Taken') + ' · return to the storeroom when finished</small>' +
         '</div></div>')).join('')
     : '';
@@ -1012,7 +1012,7 @@ async function checkOut(){
     'Return by: <b>' + esc(fmtDate(ret)) + '</b>'
   ];
   if (removed.length) parts.push(toolLines(removed));
-  if (lines.length) parts.push(lines.map(l => esc(l.code) + ' · ' + esc(l.family) + ' ' + esc(l.label) + ' × ' + l.qty).join('<br>'));
+  if (lines.length) parts.push(lines.map(l => esc(l.label) + ' × ' + l.qty).join('<br>'));
   const ok = await confirmSave('Check out ' + total + ' item' + (total > 1 ? 's' : '') + '?', parts, 'Check out');
   if (!ok || S.token !== token) return;
   // Clear the rows straight away; they come back only if the server refuses them.
@@ -1038,7 +1038,7 @@ async function checkOut(){
         lines: lines.map(l => l.code + ':' + l.qty).join(',') });
       if (S.token !== token) return;
       linesSaved = true;
-      msg += (msg ? ' ' : '') + 'Taken: ' + r2.done.map(d => d.code + ' × ' + d.qty).join(', ') + '.';
+      msg += (msg ? ' ' : '') + 'Taken: ' + r2.done.map(d => (d.label || d.code) + ' × ' + d.qty).join(', ') + '.';
     }
     status(msg, kind, 10000, undo);
     loadHolding();
@@ -1173,7 +1173,7 @@ function lineHtml(l){
         '<button class="ghost" data-code="' + c + '" onclick="lineStep(this.dataset.code,1)">+</button>' +
       '</div>'
     : '<span class="qn">× ' + l.qty + '</span>';
-  return '<div class="row" data-id="' + c + '"><div style="min-width:0"><div class="id">' + c + ' · ' + esc(l.family) + ' ' + esc(l.label) + '</div>' +
+  return '<div class="row" data-id="' + c + '"><div style="min-width:0"><div class="id">' + esc(l.label) + '</div>' +
     '<small>' + (used ? 'Used up' : 'Comes back') + ' · ' + l.stock + ' in stock</small></div>' +
     controls +
     '<button class="x" data-code="' + c + '" onclick="removeLine(this.dataset.code)">Remove</button></div>';
