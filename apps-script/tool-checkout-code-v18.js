@@ -776,8 +776,13 @@ function apiTake(token, no, text) {
       log.appendRow([now, p.l.code, used ? 'Used' : 'Out', String(no), holder, staff.id, staff.name, 'Scanner',
         p.l.qty, cost, total]);
     });
-    return { holder: holder, done: plan.map(p => ({ code: p.l.code, qty: p.l.qty, label: p.item.label,
-      total: isConsumable(p.f.group) ? Math.round(p.item.unitCost * p.l.qty * 100) / 100 : 0 })) };
+    return { holder: holder, done: plan.map(p => ({
+      code: p.l.code, qty: p.l.qty, label: p.item.label,
+      consumable: isConsumable(p.f.group),
+      unitCost: p.item.unitCost,
+      total: isConsumable(p.f.group) ? Math.round(p.item.unitCost * p.l.qty * 100) / 100 : 0,
+      stockLeft: p.item.stock - p.l.qty,
+      at: Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm') })) };
   } finally {
     lock.releaseLock();
   }

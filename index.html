@@ -19,7 +19,7 @@ b,strong,h1,h2,h3,h4,label,button,th,.id,[style*="font-weight:bold"]{font-weight
 
 html,body{margin:0;background:var(--pale);font-family:Ubuntu,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:18px;color:#000}
 header{background:var(--teal);color:#fff;padding:14px 16px;font-weight:bold;font-size:20px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
-main{max-width:560px;margin:0 auto;padding:12px 14px 110px}
+main{max-width:560px;margin:0 auto;padding:12px 14px 150px}
 h2{color:var(--dark);font-size:22px;margin:20px 0 8px}
 .card{background:#fff;border:2px solid var(--teal);border-radius:10px;padding:14px;margin:12px 0}
 label{display:block;font-weight:bold;color:var(--dark);margin:12px 0 6px}
@@ -90,6 +90,13 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
 .famItem.sel{outline:3px solid var(--dark);outline-offset:2px}
 .famItem.low{background:#ffcdd2;border-color:#e57373}
 .famItem.none{background:#b71c1c;border-color:#7f0000;color:#fff;cursor:not-allowed}
+.visit{position:fixed;left:0;right:0;bottom:84px;z-index:5;background:#fff;border-top:2px solid var(--teal);box-shadow:0 -4px 12px rgba(0,0,0,.12)}
+.visitIn{max-width:560px;margin:0 auto}
+.visitHead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;background:var(--dark);color:#fff;font-weight:500;font-size:17px;cursor:pointer}
+.visitBody{max-height:40vh;overflow:auto;padding:2px 14px 10px}
+.visitLine{padding:8px 0;border-bottom:1px solid var(--mid);font-size:16px}
+.visitLine .big{font-weight:500}
+.visitLine small{color:#333;font-size:15px}
 /* Bottom action bar: shows what is waiting and the main action */
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--teal);box-shadow:0 -4px 12px rgba(0,0,0,.12);z-index:6;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
 .barIn{max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center}
@@ -180,6 +187,13 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
   </section>
 </main>
 
+<div id="visitCard" class="visit hidden">
+  <div class="visitIn">
+    <div class="visitHead" onclick="toggleVisit()"><span id="visitSum"></span><span id="visitArrow">▲</span></div>
+    <div id="visitBody" class="visitBody hidden"></div>
+  </div>
+</div>
+
 <div id="actionBar" class="bar hidden">
   <div class="barIn">
     <div id="barSum" class="barSum"></div>
@@ -230,7 +244,7 @@ const $ = id => document.getElementById(id);
 const API = 'https://script.google.com/macros/s/AKfycbzLni8uM0wizNMLKrfQyi_9keGhMZ6JMfQ235oC4JEXe02ZdKwn9bYNdLuDQ5hFHot6zw/exec';
 const IDLE_MS = 10 * 60 * 1000;
 
-function fresh(){ return { token: '', name: '', student: null, items: new Map(), lines: new Map() }; }
+function fresh(){ return { token: '', name: '', student: null, items: new Map(), lines: new Map(), visitTakes: [] }; }
 
 let S = fresh();
 let last = Date.now();
@@ -401,6 +415,7 @@ function changeStudent(){
   touch();
   S.student = null;
   S.lines.clear();
+  S.visitTakes = [];
   renderStudent();
   renderLists();
   loadHolding();
@@ -1052,6 +1067,10 @@ async function checkOut(){
         lines: lines.map(l => l.code + ':' + l.qty).join(',') });
       if (S.token !== token) return;
       linesSaved = true;
+      r2.done.forEach(d => {
+        if (d.consumable) S.visitTakes.push({ label: d.label, qty: d.qty, unitCost: d.unitCost, total: d.total,
+          stockLeft: d.stockLeft, at: d.at });
+      });
       msg += (msg ? ' ' : '') + 'Taken: ' + r2.done.map(d => (d.label || d.code) + ' × ' + d.qty + (d.total ? ' (' + money(d.total) + ')' : '')).join(', ') + '.';
     }
     status(msg, kind, 10000, undo);
@@ -1256,6 +1275,29 @@ function accReturns(){
   return Array.from(byCode.values());
 }
 
+// ---------- Consumables taken this visit ----------
+// Lists each consumable taken for the current student, with the time and stock left, to check a disputed count.
+// Cleared on sign-out, when the student changes, or when the app is restarted.
+let visitOpen = false;
+function toggleVisit(){ visitOpen = !visitOpen; renderVisit(); }
+
+function renderVisit(){
+  const card = $('visitCard');
+  if (!card) return;
+  const takes = S.visitTakes || [];
+  const show = !!S.student && takes.length > 0 && !$('app').classList.contains('hidden');
+  card.classList.toggle('hidden', !show);
+  if (!show) return;
+  const total = Math.round(takes.reduce((n, t) => n + t.total, 0) * 100) / 100;
+  $('visitSum').textContent = 'Consumables this visit · ' + takes.length + ' taken · ' + money(total);
+  $('visitArrow').textContent = visitOpen ? '▼' : '▲';
+  $('visitBody').classList.toggle('hidden', !visitOpen);
+  $('visitBody').innerHTML = takes.map(t =>
+    '<div class="visitLine"><div class="big">' + esc(t.label) + ' × ' + t.qty + '</div>' +
+    '<small>' + money(t.unitCost) + ' each = ' + money(t.total) + ' · ' + esc(t.at) + ' · ' + t.stockLeft + ' left in stock</small></div>'
+  ).join('') + '<div class="visitLine"><b>Total this visit: ' + money(total) + '</b></div>';
+}
+
 // ---------- Bottom action bar ----------
 // Shows what is waiting and runs the main action. The action follows the order: check out, then the
 // student's ticked tools, then check in. Only the first available one is offered.
@@ -1291,6 +1333,7 @@ function updateBar(){
     btn.textContent = outs ? 'Check out' : 'Check in';
   }
   btn.disabled = busy || !barChoice;
+  renderVisit();
 }
 
 function barAction(){
