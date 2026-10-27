@@ -373,6 +373,10 @@ function showApp(){
   $('signout').classList.remove('hidden');
   $('who').textContent = 'Signed in as ' + S.name + '. Signs out after 10 minutes without activity.';
   $('retDate').value = todayStr();
+  // A fresh sign-in never starts with a student, so the old list is cleared.
+  renderStudent();
+  renderLists();
+  loadHolding();
   // Keep the server responsive while staff are signed in: a tiny request every 4 minutes.
   clearInterval(keepAlive);
   keepAlive = setInterval(() => api({ api: 'ping' }).catch(() => {}), 4 * 60 * 1000);
@@ -392,6 +396,17 @@ async function lockOut(msg){
   showStaffView(false);
   $('staffBtn').classList.remove('hidden');
   $('signout').classList.add('hidden');
+  // Empty the screen as well, so nothing from the last student is left in the page.
+  holdItems = new Map();
+  lastAction = null;
+  $('whoResult').innerHTML = '';
+  $('myResult').innerHTML = '';
+  $('famBox').classList.add('hidden');
+  $('confirmBox').classList.add('hidden');
+  $('visitBody').innerHTML = '';
+  renderStudent();
+  renderLists();
+  loadHolding();
   if (msg) status(msg, 'bad', 9000);
 }
 
