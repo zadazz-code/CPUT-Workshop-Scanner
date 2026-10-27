@@ -423,7 +423,7 @@ function renderHolding(items, accs){
   const toolHtml = items.map(t =>
     '<label class="row' + (t.overdue ? ' late' : '') + '">' +
     '<input type="checkbox" class="hold" value="' + esc(t.id) + '" onchange="pickHold(this)" style="display:none">' +
-    '<div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+    '<div><div class="id">' + esc(t.name) + '</div>' +
     '<small>' + (t.overdue ? 'OVERDUE · ' : '') + 'Return by ' + esc(t.due) + '</small></div>' +
     '</label>').join('');
   // Accessories: one row per item out, each with its own tick box.
@@ -459,7 +459,7 @@ async function checkInHolding(){
   const token = S.token;
   const items = picked.map(c => ({
     id: c.value,
-    name: (c.closest('label').querySelector('.id').textContent.split(' · ')[1] || '')
+    name: c.closest('label').querySelector('.id').textContent
   }));
   const total = ids.length + accs.reduce((n, a) => n + a.qty, 0);
   const parts = [];
@@ -723,7 +723,7 @@ function myToolsHtml(r){
     : '';
   return head + banner + items.map(t =>
     '<div class="row' + (t.overdue ? ' stuLate' : t.dueToday ? ' dueToday' : '') + '"><div>' +
-    '<div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+    '<div class="id">' + esc(t.name) + '</div>' +
     '<small>' + (t.overdue ? 'OVERDUE · ' : t.dueToday ? 'Due back today · ' : '') + 'Return by ' + esc(t.due) + '</small>' +
     '</div></div>').join('') +
     '<p class="small">Overdue tools are dark red and listed first. Tools due back today are light red.</p>' + accHtml;
@@ -785,7 +785,7 @@ $('manual').addEventListener('keydown', e => {
 
 async function addTool(id){
   touch();
-  if (S.items.has(id)) return status(id + ' is already in the list.', 'bad');
+  if (S.items.has(id)) return status('That item is already in the list.', 'bad');
   if (pending.has(id)) return;
   pending.add(id);
   S.items.set(id, { id: id, name: 'Checking…', pending: true });
@@ -796,7 +796,7 @@ async function addTool(id){
     const t = await api({ api: 'tool', token: token, id: id });
     if (S.token !== token) return;
     S.items.set(id, t);
-    status(t.name + ' (' + t.id + ') added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
+    status(t.name + ' added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
   } catch (e) {
     if (S.token === token) S.items.delete(id);
     flashScan(false, id);
@@ -871,14 +871,14 @@ async function lookupTool(id){
     if (S.token !== token || mode !== 'who') return;
     $('whoResult').innerHTML = t.out
       ? '<div class="who' + (t.overdue ? ' late' : '') + '">' +
-          '<div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+          '<div class="big">' + esc(t.name) + '</div>' +
           '<p style="margin:12px 0 2px"><b>Out to</b></p>' +
           '<div class="big">' + esc(t.borrower || t.holder) + '</div>' +
           (t.year ? '<div style="font-size:18px;margin-top:2px">' + esc(t.year) + '</div>' : '') +
           '<p style="margin:12px 0 0"><b>Return by</b> ' + esc(t.due || 'no date set') + '</p>' +
           (t.overdue ? '<p class="tag" style="font-weight:bold;margin:6px 0 0">OVERDUE</p>' : '') +
         '</div>'
-      : '<div class="who"><div class="big">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+      : '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
           '<p style="margin:10px 0 0">Available. Not out to anyone.</p></div>';
   } catch (e) {
     $('whoResult').innerHTML = '';
@@ -907,7 +907,7 @@ function confirmSave(title, lines, okLabel){
 }
 
 function toolLines(items){
-  return items.map(t => esc(t.id) + ' · ' + esc(t.name)).join('<br>');
+  return items.map(t => esc(t.name)).join('<br>');
 }
 
 function noFromHolder(h){
@@ -973,7 +973,7 @@ function rowHtml(t){
   const detail = t.pending ? 'Checking…' : t.out
     ? 'Out to ' + esc(t.borrower || t.holder) + (t.due ? ' · back by ' + esc(t.due) : '') + (t.overdue ? ' · OVERDUE' : '')
     : 'Available';
-  return '<div class="row" data-id="' + esc(t.id) + '"><div><div class="id">' + esc(t.id) + ' · ' + esc(t.name) + '</div>' +
+  return '<div class="row" data-id="' + esc(t.id) + '"><div><div class="id">' + esc(t.name) + '</div>' +
     '<small>' + detail + '</small></div>' +
     '<button class="x" onclick="removeItem(\'' + esc(t.id) + '\')">Remove</button></div>';
 }
