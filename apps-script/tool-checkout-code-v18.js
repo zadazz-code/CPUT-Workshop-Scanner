@@ -763,7 +763,7 @@ function apiTake(token, no, text) {
       if (idx < 0) throw new Error('Unknown item: ' + l.code);
       const item = itemFrom(tab, tab.rows[idx]);
       if (!(l.qty >= 1)) throw new Error('Quantity must be at least 1');
-      if (l.qty > item.stock) throw new Error('Only ' + item.stock + ' of ' + l.code + ' in stock');
+      if (l.qty > item.stock) throw new Error('Only ' + item.stock + ' of ' + item.label + ' in stock');
       return { l: l, f: f, tab: tab, row: idx + 1, item: item };
     });
 
@@ -803,7 +803,7 @@ function apiReturnItems(token, no, text) {
       const idx = tab.rows.findIndex((r, i) => i > 0 && String(r[tab.col.code]).trim().toUpperCase() === l.code);
       if (idx < 0) throw new Error('Unknown item: ' + l.code);
       const have = held.get(l.code) || 0;
-      if (!(l.qty >= 1) || l.qty > have) throw new Error(holder + ' has ' + have + ' of ' + l.code + ' out');
+      if (!(l.qty >= 1) || l.qty > have) throw new Error(holder + ' has ' + have + ' of ' + itemFrom(tab, tab.rows[idx]).label + ' out');
       return { l: l, tab: tab, row: idx + 1, item: itemFrom(tab, tab.rows[idx]) };
     });
 

@@ -1096,8 +1096,8 @@ function isConsumable(group){ return String(group || '').trim().toLowerCase() ==
 async function openFamily(code){
   touch();
   if (!$('famBox').classList.contains('hidden')) return;
-  if (mode === 'who') return status('Switch to Add to lists to pick ' + code + ' items.', 'bad');
-  if (!S.student) return status('Confirm a student first, then scan ' + code + ' again.', 'bad');
+  if (mode === 'who') return status('Switch to Add to lists to pick items.', 'bad');
+  if (!S.student) return status('Confirm a student first, then scan again.', 'bad');
   if (pending.has('fam:' + code)) return;
   pending.add('fam:' + code);
   const token = S.token;
@@ -1111,7 +1111,7 @@ async function openFamily(code){
     famSelChanged();
     $('famBox').classList.remove('hidden');
   } catch (e) {
-    flashScan(false, code);
+    flashScan(false, 'Not found');
     handleErr(e);
   } finally {
     pending.delete('fam:' + code);
@@ -1154,11 +1154,11 @@ function addFamilyLine(){
   if (!it || !(q >= 1)) return;
   const have = S.lines.get(it.code);
   const qty = (have ? have.qty : 0) + q;
-  if (qty > it.stock) return status('Only ' + it.stock + ' of ' + it.code + ' in stock.', 'bad');
+  if (qty > it.stock) return status('Only ' + it.stock + ' of ' + it.label + ' in stock.', 'bad');
   S.lines.set(it.code, { code: it.code, label: it.label, family: famCurrent.family, group: famCurrent.group,
     qty: qty, stock: it.stock, unitCost: it.unitCost });
   $('famBox').classList.add('hidden');
-  feedback(true, it.code);
+  feedback(true, it.label);
   renderLists();
   highlightRow(it.code);
 }
@@ -1185,7 +1185,7 @@ function lineStep(code, d){
   if (!l) return;
   let q = l.qty + d;
   if (q < 1) q = 1;
-  if (q > l.stock) { status('Only ' + l.stock + ' of ' + code + ' in stock.', 'bad'); q = l.stock; }
+  if (q > l.stock) { status('Only ' + l.stock + ' of ' + l.label + ' in stock.', 'bad'); q = l.stock; }
   l.qty = q;
   renderLists();
 }
