@@ -146,9 +146,11 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
     <div class="card" id="studentBox"></div>
     <div id="stuReader" class="hidden"></div>
 
-    <h2>Out to this student (<span id="nHold">0</span>)</h2>
-    <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
-    <button id="btnHoldIn" class="secondary hidden" onclick="checkInHolding()" disabled>Check in selected</button>
+    <div id="holdSection">
+      <h2>Out to this student (<span id="nHold">0</span>)</h2>
+      <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
+      <button id="btnHoldIn" class="secondary hidden" onclick="checkInHolding()" disabled>Check in selected</button>
+    </div>
 
     <h2>Scan tools</h2>
     <div class="card">
@@ -449,6 +451,8 @@ function changeStudent(){
 
 // Tools currently out to the confirmed student, earliest return first; overdue ones shown in red.
 async function loadHolding(){
+  // Until a student is confirmed, the whole "Out to this student" section is hidden.
+  $('holdSection').classList.toggle('hidden', !S.student);
   if (!S.student) {
     $('nHold').textContent = '0';
     $('listHold').innerHTML = '<p class="small">Confirm a student to see what they have out.</p>';
