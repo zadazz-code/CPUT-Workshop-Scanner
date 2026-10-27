@@ -84,6 +84,12 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
 .stepper.sm button{min-width:40px;min-height:40px;font-size:20px;padding:4px 8px}
 .stepper.sm input{width:64px;height:40px}
 .stepper .qn{min-width:34px;text-align:center;font-weight:bold;font-size:20px}
+.famItem{display:block;width:100%;text-align:left;padding:12px 14px;margin:8px 0;border:2px solid var(--teal);border-radius:8px;background:#fff;color:#000;font-size:18px;cursor:pointer}
+.famItem .fName{font-weight:500}
+.famItem .fSub{font-size:15px;margin-top:2px}
+.famItem.sel{outline:3px solid var(--dark);outline-offset:2px}
+.famItem.low{background:#ffcdd2;border-color:#e57373}
+.famItem.none{background:#b71c1c;border-color:#7f0000;color:#fff;cursor:not-allowed}
 /* Bottom action bar: shows what is waiting and the main action */
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:2px solid var(--teal);box-shadow:0 -4px 12px rgba(0,0,0,.12);z-index:6;padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
 .barIn{max-width:560px;margin:0 auto;display:flex;gap:10px;align-items:center}
@@ -198,8 +204,9 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
 <div id="famBox" class="overlay hidden">
   <div class="sheet">
     <h2 id="famTitle" style="margin-top:0"></h2>
-    <label for="famSel">Choose</label>
-    <select id="famSel" onchange="famSelChanged()"></select>
+    <label>Choose</label>
+    <input type="hidden" id="famSel">
+    <div id="famList"></div>
     <p id="famStock" class="small" style="margin:6px 0 0"></p>
     <div id="famQtyBox">
       <label for="famQty">How many</label>
@@ -1115,9 +1122,8 @@ async function openFamily(code, pick){
     if (!S.student) return status('Confirm a student first, then scan again.', 'bad');
     famCurrent = f;
     $('famTitle').textContent = f.family;
-    $('famSel').innerHTML = f.items.map(it =>
-      '<option value="' + esc(it.code) + '">' + esc(it.label) + ' · ' + it.stock + ' in stock' + (it.low ? ' · LOW' : '') + '</option>').join('');
-    if (pick) $('famSel').value = pick;
+    const first = (f.items.find(i => i.stock > 0) || f.items[0] || {}).code || '';
+    $('famSel').value = pick || first;
     famSelChanged();
     $('famBox').classList.remove('hidden');
   } catch (e) {
@@ -1132,14 +1138,34 @@ function famItem(){
   return famCurrent ? famCurrent.items.find(i => i.code === $('famSel').value) || null : null;
 }
 
+// Draws the items as blocks: light red when low, dark red with "No stock" when empty.
+function famRender(){
+  const sel = $('famSel').value;
+  $('famList').innerHTML = famCurrent ? famCurrent.items.map(it => {
+    const cls = ['famItem', it.stock < 1 ? 'none' : it.low ? 'low' : '', it.code === sel ? 'sel' : ''].join(' ');
+    const sub = it.stock < 1 ? 'No stock' : it.low ? 'Low stock: ' + it.stock + ' left' : it.stock + ' in stock';
+    return '<div class="' + cls + '" role="button" tabindex="0" data-code="' + esc(it.code) + '" onclick="famPick(this.dataset.code)">' +
+      '<div class="fName">' + esc(it.label) + '</div><div class="fSub">' + sub + '</div></div>';
+  }).join('') : '';
+}
+
+// Only items with stock can be picked. Empty ones show dark red and stay greyed out.
+function famPick(code){
+  const it = famCurrent && famCurrent.items.find(i => i.code === code);
+  if (!it || it.stock < 1) return;
+  $('famSel').value = code;
+  famSelChanged();
+}
+
 function famSelChanged(){
   const it = famItem();
   const kind = famCurrent && isConsumable(famCurrent.group) ? 'used up when taken' : 'comes back';
-  $('famStock').textContent = it ? it.stock + ' in stock' + (it.low ? ' · LOW, reorder soon' : '') + ' · ' + kind : '';
+  $('famStock').textContent = it ? (it.stock < 1 ? 'No stock' : it.stock + ' in stock' + (it.low ? ' · LOW, reorder soon' : '') + ' · ' + kind) : '';
   // Accessories are always one at a time, so only consumables need a quantity.
   $('famQtyBox').classList.toggle('hidden', !(famCurrent && isConsumable(famCurrent.group)));
   $('famQty').value = 1;
   famQtyFix();
+  famRender();
 }
 
 // Keeps the quantity between 1 and what is in stock.
