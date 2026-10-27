@@ -659,11 +659,17 @@ function familyTab(family) {
   const rows = sh.getDataRange().getValues();
   const head = rows[0].map(h => String(h).trim().toLowerCase());
   const col = {
-    code: head.indexOf('code'), stock: head.indexOf('stock'),
+    code: head.indexOf('code'), name: head.indexOf('name'), stock: head.indexOf('stock'),
     cost: head.indexOf('unit cost'), min: head.indexOf('minimum')
   };
   if (col.code < 0 || col.stock < 0) throw new Error(family + ' tab needs Code and Stock headings');
-  return { sheet: sh, rows: rows, col: col };
+  return { sheet: sh, rows: rows, col: col, family: family };
+}
+
+// What people see: the Name column if it is filled in, otherwise the family and its size or grit.
+function displayName(tab, r) {
+  if (tab.col.name >= 0 && String(r[tab.col.name]).trim()) return String(r[tab.col.name]).trim();
+  return tab.family + ' ' + String(r[1]).trim();
 }
 
 function itemFrom(tab, r) {
@@ -671,7 +677,7 @@ function itemFrom(tab, r) {
   const min = tab.col.min >= 0 ? Number(r[tab.col.min]) || 0 : 0;
   return {
     code: String(r[tab.col.code]).trim().toUpperCase(),
-    label: String(r[1]).trim(),          // second column: size or grit
+    label: displayName(tab, r),
     stock: stock,
     unitCost: tab.col.cost >= 0 ? Number(r[tab.col.cost]) || 0 : 0,
     minimum: min,
@@ -729,7 +735,7 @@ function accessoriesHeld(no) {
     const tab = familyTab(f.family);
     const row = tab.rows.slice(1).find(r => String(r[tab.col.code]).trim().toUpperCase() === code);
     const taken = since.get(code);
-    out.push({ code: code, qty: qty, label: row ? String(row[1]).trim() : '', family: f.family,
+    out.push({ code: code, qty: qty, label: row ? displayName(tab, row) : '', family: f.family,
       taken: taken ? Utilities.formatDate(new Date(taken), Session.getScriptTimeZone(), 'd MMM yyyy') : '' });
   });
   return out;
@@ -770,7 +776,7 @@ function apiTake(token, no, text) {
       log.appendRow([now, p.l.code, used ? 'Used' : 'Out', String(no), holder, staff.id, staff.name, 'Scanner',
         p.l.qty, cost, total]);
     });
-    return { holder: holder, done: plan.map(p => ({ code: p.l.code, qty: p.l.qty })) };
+    return { holder: holder, done: plan.map(p => ({ code: p.l.code, qty: p.l.qty, label: p.item.label })) };
   } finally {
     lock.releaseLock();
   }
@@ -806,7 +812,7 @@ function apiReturnItems(token, no, text) {
       p.tab.sheet.getRange(p.row, p.tab.col.stock + 1).setValue(p.item.stock + p.l.qty);
       log.appendRow([now, p.l.code, 'In', String(no), holder, staff.id, staff.name, 'Scanner', p.l.qty, '', '']);
     });
-    return { holder: holder, done: lines };
+    return { holder: holder, done: plan.map(p => ({ code: p.l.code, qty: p.l.qty, label: p.item.label })) };
   } finally {
     lock.releaseLock();
   }
