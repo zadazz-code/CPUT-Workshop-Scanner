@@ -45,6 +45,8 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .stuBanner{background:#b71c1c;color:#fff;font-weight:bold;padding:12px 14px;border-radius:8px;margin:10px 0}
 #listHold .row{cursor:pointer;user-select:none}
 #holdSection{scroll-margin-top:76px}
+.holdToggle{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;min-height:52px;background:var(--dark);color:#fff;border:0;border-radius:8px;padding:12px 14px;font-size:18px;font-weight:500;margin:18px 0 8px;text-align:left}
+.holdToggle b{font-weight:500}
 #listHold .row.picked{background:#c8e6c9;border-color:#2e7d32}
 #listHold .row.picked .id,#listHold .row.picked small{color:#1b5e20}
 #myReader,#stuReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px;scroll-margin-top:76px}
@@ -147,11 +149,6 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
     <div class="card" id="studentBox"></div>
     <div id="stuReader" class="hidden"></div>
 
-    <div id="holdSection">
-      <h2>Out to this student (<span id="nHold">0</span>)</h2>
-      <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
-      <button id="btnHoldIn" class="secondary hidden" onclick="checkInHolding()" disabled>Check in selected</button>
-    </div>
 
     <h2>Scan tools</h2>
     <div class="card">
@@ -171,6 +168,15 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
       <button id="manualBtn" class="ghost" onclick="addManual()">Add tool</button>
     </div>
     <div id="whoResult"></div>
+    <div id="holdSection">
+      <button id="holdToggle" class="holdToggle" onclick="toggleHold()" aria-expanded="false">
+        <span>Out to this student · <b id="nHold">0</b> items</span><span id="holdArrow">Show ▼</span>
+      </button>
+      <div id="holdBody" class="hidden">
+        <div id="listHold"><p class="small">Confirm a student to see what they have out.</p></div>
+        <button id="btnHoldIn" class="secondary hidden" onclick="checkInHolding()" disabled>Check in selected</button>
+      </div>
+    </div>
 
     <h2>Return date</h2>
     <div class="card">
@@ -454,6 +460,7 @@ function changeStudent(){
 async function loadHolding(){
   // Until a student is confirmed, the whole "Out to this student" section is hidden.
   $('holdSection').classList.toggle('hidden', !S.student);
+  renderHoldToggle();
   if (!S.student) {
     $('nHold').textContent = '0';
     $('listHold').innerHTML = '<p class="small">Confirm a student to see what they have out.</p>';
@@ -1281,8 +1288,24 @@ function lineHtml(l){
     '<button class="x" data-code="' + c + '" onclick="removeLine(this.dataset.code)">Remove</button></div>';
 }
 
+let holdOpen = false;
+function toggleHold(){
+  touch();
+  // Keep it open while items are ticked, so a tick cannot be hidden by accident.
+  if (holdOpen && (document.querySelectorAll('input.hold:checked').length || accTicked())) return;
+  holdOpen = !holdOpen;
+  renderHoldToggle();
+}
+function renderHoldToggle(){
+  $('holdBody').classList.toggle('hidden', !holdOpen);
+  $('holdArrow').textContent = holdOpen ? 'Hide ▲' : 'Show ▼';
+  $('holdToggle').setAttribute('aria-expanded', String(holdOpen));
+}
+
 // After a save, move the screen up to the top of the student section, so the whole student area is in view.
 function scrollToStudent(){
+  holdOpen = false;
+  renderHoldToggle();
   const heading = $('studentBox').previousElementSibling; // the "Student" heading above the student box
   if (!heading) return;
   // Stop just below the sticky header, so the heading and the student's name are both visible.
