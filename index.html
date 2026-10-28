@@ -44,6 +44,7 @@ button:disabled{background:#9e9e9e;border-color:#9e9e9e;color:#fff}
 .row.stuLate small{font-weight:bold}
 .stuBanner{background:#b71c1c;color:#fff;font-weight:bold;padding:12px 14px;border-radius:8px;margin:10px 0}
 #listHold .row{cursor:pointer;user-select:none}
+#holdSection{scroll-margin-top:76px}
 #listHold .row.picked{background:#c8e6c9;border-color:#2e7d32}
 #listHold .row.picked .id,#listHold .row.picked small{color:#1b5e20}
 #myReader,#stuReader{width:100%;border-radius:8px;overflow:hidden;background:#000;margin-top:10px;scroll-margin-top:76px}
@@ -547,6 +548,7 @@ async function checkInHolding(){
       msg += (msg ? ' ' : '') + 'Returned ' + r2.done.map(d => (d.label || d.code) + ' × ' + d.qty).join(', ') + '.';
     }
     status(msg, kind, 10000, undo);
+    scrollToHolding();
   } catch (e) {
     handleErr(e);
   } finally {
@@ -1107,6 +1109,7 @@ async function checkOut(){
     }
     status(msg, kind, 10000, undo);
     loadHolding();
+    scrollToHolding();
   } catch (e) {
     if (S.token === token) {
       if (!toolsSaved) removed.forEach(t => S.items.set(t.id, t));
@@ -1275,6 +1278,12 @@ function lineHtml(l){
     (used && l.unitCost ? '<br>' + money(l.unitCost) + ' each · total ' + money(l.unitCost * l.qty) : '') + '</small></div>' +
     controls +
     '<button class="x" data-code="' + c + '" onclick="removeLine(this.dataset.code)">Remove</button></div>';
+}
+
+// After a save, move the screen up to the student's "Out to this student" list.
+function scrollToHolding(){
+  const el = $('holdSection');
+  if (el && !el.classList.contains('hidden')) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function lineStep(code, d){
