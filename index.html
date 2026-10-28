@@ -365,6 +365,8 @@ async function signIn(){
     $('pin').value = '';
     touch();
     showApp();
+    // Put the cursor in the student number box, so staff can type straight away.
+    setTimeout(() => { const el = $('stuNo'); if (el) el.focus(); }, 0);
   } catch (e) {
     status(e.message, 'bad', 9000);
   } finally {
