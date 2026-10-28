@@ -548,7 +548,7 @@ async function checkInHolding(){
       msg += (msg ? ' ' : '') + 'Returned ' + r2.done.map(d => (d.label || d.code) + ' × ' + d.qty).join(', ') + '.';
     }
     status(msg, kind, 10000, undo);
-    scrollToHolding();
+    scrollToStudent();
   } catch (e) {
     handleErr(e);
   } finally {
@@ -1109,7 +1109,7 @@ async function checkOut(){
     }
     status(msg, kind, 10000, undo);
     loadHolding();
-    scrollToHolding();
+    scrollToStudent();
   } catch (e) {
     if (S.token === token) {
       if (!toolsSaved) removed.forEach(t => S.items.set(t.id, t));
@@ -1280,10 +1280,10 @@ function lineHtml(l){
     '<button class="x" data-code="' + c + '" onclick="removeLine(this.dataset.code)">Remove</button></div>';
 }
 
-// After a save, move the screen up to the student's "Out to this student" list.
-function scrollToHolding(){
-  const el = $('holdSection');
-  if (el && !el.classList.contains('hidden')) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// After a save, move the screen up to the top of the student section, so the whole student area is in view.
+function scrollToStudent(){
+  const heading = $('studentBox').previousElementSibling; // the "Student" heading above the student box
+  if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function lineStep(code, d){
