@@ -576,6 +576,7 @@ async function confirmStudent(){
     renderStudent();
     renderLists();
     loadHolding();
+    scrollToStudent();
     return;
   }
   const token = S.token;
@@ -588,6 +589,7 @@ async function confirmStudent(){
     renderStudent();
     renderLists();
     loadHolding();
+    scrollToStudent();
   } catch (e) {
     handleErr(e);
   }
