@@ -862,6 +862,11 @@ async function addTool(id){
   try {
     const t = await api({ api: 'tool', token: token, id: id });
     if (S.token !== token) return;
+    if (t.repair) {
+      S.items.delete(id);
+      flashScan(false, id);
+      return status(t.name + ' is out for maintenance and cannot be checked out.', 'bad');
+    }
     S.items.set(id, t);
     status(t.name + ' added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
   } catch (e) {
@@ -945,7 +950,10 @@ async function lookupTool(id){
           '<p style="margin:12px 0 0"><b>Return by</b> ' + esc(t.due || 'no date set') + '</p>' +
           (t.overdue ? '<p class="tag" style="font-weight:bold;margin:6px 0 0">OVERDUE</p>' : '') +
         '</div>'
-      : '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
+      : t.repair
+        ? '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
+          '<p style="margin:10px 0 0;color:#b71c1c;font-weight:bold">Out for maintenance. Cannot be checked out.</p></div>'
+        : '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
           '<p style="margin:10px 0 0">Available. Not out to anyone.</p></div>';
   } catch (e) {
     $('whoResult').innerHTML = '';
@@ -1102,7 +1110,7 @@ async function checkOut(){
       toolsSaved = true;
       lastAction = { type: 'out', ids: r.done };
       msg = 'Checked out ' + r.done.length + ' to ' + r.holder + ', return by ' + r.returnBy + '.';
-      if (r.taken.length) { msg += ' Not checked out (already out or unknown): ' + r.taken.join(', ') + '.'; kind = 'bad'; }
+      if (r.taken.length) { msg += ' Not checked out (already out, out for maintenance, or unknown): ' + r.taken.join(', ') + '.'; kind = 'bad'; }
       if (r.done.length) undo = { label: 'Undo', fn: undoLast };
     }
     if (lines.length) {

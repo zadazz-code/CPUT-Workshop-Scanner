@@ -507,7 +507,7 @@ function apiTool(token, id) {
   const out = t.status === 'Out';
   const due = t.due ? new Date(t.due) : null;
   return {
-    id: t.id, name: t.name, out: out,
+    id: t.id, name: t.name, out: out, repair: t.status === 'Repair',
     holder: out ? t.holder : '',
     due: due ? fmt(due) : '',
     dueDate: due ? Utilities.formatDate(due, Session.getScriptTimeZone(), 'yyyy-MM-dd') : '',
