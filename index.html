@@ -379,9 +379,9 @@ function showApp(){
   renderStudent();
   renderLists();
   loadHolding();
-  // Keep the server responsive while staff are signed in: a tiny request every 4 minutes.
+  // Keep the server responsive while staff are signed in: a tiny request every 2 minutes.
   clearInterval(keepAlive);
-  keepAlive = setInterval(() => api({ api: 'ping' }).catch(() => {}), 4 * 60 * 1000);
+  keepAlive = setInterval(() => api({ api: 'ping' }).catch(() => {}), 2 * 60 * 1000);
   renderStudent();
   renderLists();
 }
