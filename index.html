@@ -1109,6 +1109,7 @@ async function checkOut(){
     }
     status(msg, kind, 10000, undo);
     loadHolding();
+    stopCamera(); // the next items are picked from the list, so close the camera
     scrollToStudent();
   } catch (e) {
     if (S.token === token) {
@@ -1283,7 +1284,11 @@ function lineHtml(l){
 // After a save, move the screen up to the top of the student section, so the whole student area is in view.
 function scrollToStudent(){
   const heading = $('studentBox').previousElementSibling; // the "Student" heading above the student box
-  if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (!heading) return;
+  // Stop just below the sticky header, so the heading and the student's name are both visible.
+  const headerH = document.querySelector('header').offsetHeight;
+  const y = heading.getBoundingClientRect().top + window.scrollY - headerH - 12;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 
 function lineStep(code, d){
