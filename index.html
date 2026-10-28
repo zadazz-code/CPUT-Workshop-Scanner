@@ -240,6 +240,8 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
       </div>
     </div>
     <p id="famTotal" style="font-size:20px;font-weight:bold;margin:8px 0 0"></p>
+    <div id="famBasket"></div>
+    <button class="ghost" id="famAnother" onclick="famAddAnother()">Add another item</button>
     <button id="famOk" onclick="addFamilyLine()">Add to check out</button>
     <button class="ghost" onclick="document.getElementById('famBox').classList.add('hidden')">Cancel</button>
   </div>
@@ -1191,6 +1193,53 @@ function money(n){ return 'R' + Number(n).toFixed(2); }
 // Opens the picker for a scanned family code, e.g. DB.
 // Opens the picker for a family code, e.g. DB. If an item code was typed (e.g. WR-2.5), that item is selected.
 // If the code is not a family at all, it is treated as a tool ID (e.g. C-014).
+let famBasket = [];   // items queued in the open picker: [{item, qty}]
+
+// Queues the current selection. Merges with the same item if it is already queued.
+function famQueueCurrent(){
+  const it = famItem();
+  if (!it || it.stock < 1) return false;
+  const q = isConsumable(famCurrent.group) ? Math.floor(Number($('famQty').value)) : 1;
+  if (!(q >= 1)) return false;
+  const have = S.lines.get(it.code);
+  const queued = famBasket.find(b => b.item.code === it.code);
+  const total = (have ? have.qty : 0) + (queued ? queued.qty : 0) + q;
+  if (total > it.stock) { status('Only ' + it.stock + ' of ' + it.label + ' in stock.', 'bad'); return false; }
+  if (queued) queued.qty += q; else famBasket.push({ item: it, qty: q });
+  return true;
+}
+
+function famBasketRender(){
+  const el = $('famBasket');
+  if (!famBasket.length) { el.innerHTML = ''; return; }
+  const consumable = famCurrent && isConsumable(famCurrent.group);
+  let sum = 0;
+  const rows = famBasket.map((b, i) => {
+    const cost = consumable && b.item.unitCost ? b.qty * b.item.unitCost : 0;
+    sum += cost;
+    return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px">' +
+      '<span>' + esc(b.item.label) + ' × ' + b.qty + (cost ? ' · ' + money(cost) : '') + '</span>' +
+      '<button class="x" onclick="famRemove(' + i + ')">Remove</button></div>';
+  }).join('');
+  el.innerHTML = '<p style="margin:12px 0 0"><b>Also adding</b></p>' + rows +
+    (sum ? '<p style="font-weight:bold;margin:6px 0 0">Basket total: ' + money(sum) + '</p>' : '');
+}
+
+function famRemove(i){
+  famBasket.splice(i, 1);
+  famBasketRender();
+  famQtyFix();
+}
+
+// Queues the current choice and keeps the picker open for the next item.
+function famAddAnother(){
+  touch();
+  if (!famQueueCurrent()) return;
+  famBasketRender();
+  famSelChanged();   // back to quantity 1 for the next pick
+  status('Added. Pick another item, or tap Add to check out.');
+}
+
 async function openFamily(code, pick){
   touch();
   if (!$('famBox').classList.contains('hidden')) return;
@@ -1209,6 +1258,8 @@ async function openFamily(code, pick){
     if (S.token !== token) return;
     if (!S.student) return status('Confirm a student first, then scan again.', 'bad');
     famCurrent = f;
+    famBasket = [];
+    famBasketRender();
     $('famTitle').textContent = f.family;
     const first = (f.items.find(i => i.stock > 0) || f.items[0] || {}).code || '';
     $('famSel').value = pick || first;
@@ -1266,7 +1317,9 @@ function famQtyFix(){
   $('famQty').value = q;
   const priced = it && famCurrent && isConsumable(famCurrent.group) && it.unitCost;
   $('famTotal').textContent = priced ? 'Total: ' + money(it.unitCost * q) : '';
-  $('famOk').disabled = !it || it.stock < 1;
+  const canPick = !!it && it.stock >= 1;
+  $('famAnother').disabled = !canPick;
+  $('famOk').disabled = !famBasket.length && !canPick;
 }
 
 function famStep(d){
@@ -1277,17 +1330,23 @@ function famStep(d){
 function addFamilyLine(){
   touch();
   const it = famItem();
-  const q = isConsumable(famCurrent.group) ? Math.floor(Number($('famQty').value)) : 1;
-  if (!it || !(q >= 1)) return;
-  const have = S.lines.get(it.code);
-  const qty = (have ? have.qty : 0) + q;
-  if (qty > it.stock) return status('Only ' + it.stock + ' of ' + it.label + ' in stock.', 'bad');
-  S.lines.set(it.code, { code: it.code, label: it.label, family: famCurrent.family, group: famCurrent.group,
-    qty: qty, stock: it.stock, unitCost: it.unitCost });
+  if (it && it.stock >= 1 && !famQueueCurrent()) return;   // current choice invalid: keep the picker open
+  if (!famBasket.length) return;
+  const names = [];
+  let last = null;
+  famBasket.forEach(b => {
+    const have = S.lines.get(b.item.code);
+    S.lines.set(b.item.code, { code: b.item.code, label: b.item.label, family: famCurrent.family, group: famCurrent.group,
+      qty: (have ? have.qty : 0) + b.qty, stock: b.item.stock, unitCost: b.item.unitCost });
+    names.push(b.item.label);
+    last = b.item;
+  });
+  famBasket = [];
+  famBasketRender();
   $('famBox').classList.add('hidden');
-  feedback(true, it.label);
+  feedback(true, names.join(', '));
   renderLists();
-  highlightRow(it.code);
+  highlightRow(last.code);
 }
 
 function lineHtml(l){
