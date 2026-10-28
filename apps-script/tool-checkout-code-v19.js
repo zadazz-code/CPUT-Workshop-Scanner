@@ -865,7 +865,7 @@ function apiVisit(token, no) {
 // then run importStockTake() from the Apps Script editor.
 // It adds one Tools row per unit whose Name is not already in Tools, with the next TL- ID.
 // Rows with Status "Repair" are listed as "Needs repair" and cannot be checked out.
-// Run importStockTake(true) first to see what would be added without writing anything.
+// Run previewStockTake() first to see what would be added without writing anything.
 const IMPORT_TAB = 'StockImport';
 
 function importStockTake(dryRun) {
@@ -898,4 +898,9 @@ function importStockTake(dryRun) {
   Logger.log((dryRun ? 'Would add ' : 'Added ') + toAdd.length + ' tools (' + repairs + ' need repair). ' +
     'Already listed and skipped: ' + skipped.length + (skipped.length ? ' - ' + skipped.join(', ') : '') + '.');
   return { added: toAdd.length, repairs: repairs, skipped: skipped.length, dryRun: !!dryRun };
+}
+
+// Choose previewStockTake in the Apps Script function list and press Run. It writes nothing.
+function previewStockTake() {
+  return importStockTake(true);
 }
