@@ -567,6 +567,11 @@ async function checkInHolding(){
   }
 }
 
+// After a student is confirmed, put the cursor in the tool box. preventScroll keeps the student name in view.
+function focusTool(){
+  setTimeout(() => { const el = $('manual'); if (el) el.focus({ preventScroll: true }); }, 0);
+}
+
 async function confirmStudent(){
   touch();
   const no = $('stuNo').value.trim();
@@ -579,6 +584,7 @@ async function confirmStudent(){
     renderLists();
     loadHolding();
     scrollToStudent();
+    focusTool();
     return;
   }
   const token = S.token;
@@ -592,6 +598,7 @@ async function confirmStudent(){
     renderLists();
     loadHolding();
     scrollToStudent();
+    focusTool();
   } catch (e) {
     handleErr(e);
   }
