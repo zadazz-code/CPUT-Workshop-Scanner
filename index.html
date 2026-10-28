@@ -865,7 +865,7 @@ async function addTool(id){
     if (t.repair) {
       S.items.delete(id);
       flashScan(false, id);
-      return status(t.name + ' is out for maintenance and cannot be checked out.', 'bad');
+      return status(t.name + ' is currently unavailable due to repairs.', 'bad');
     }
     S.items.set(id, t);
     status(t.name + ' added' + (t.out ? '. It is out, so it goes to check-in.' : '.'));
@@ -952,7 +952,7 @@ async function lookupTool(id){
         '</div>'
       : t.repair
         ? '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
-          '<p style="margin:10px 0 0;color:#b71c1c;font-weight:bold">Out for maintenance. Cannot be checked out.</p></div>'
+          '<p style="margin:10px 0 0;color:#b71c1c;font-weight:bold">Currently unavailable due to repairs.</p></div>'
         : '<div class="who"><div class="big">' + esc(t.name) + '</div>' +
           '<p style="margin:10px 0 0">Available. Not out to anyone.</p></div>';
   } catch (e) {
