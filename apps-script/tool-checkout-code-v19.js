@@ -1,5 +1,6 @@
 // ============================================================
-// Workshop Tools - Apps Script (v18)
+// Workshop Tools - Apps Script (v19)
+// v19: stock take import (importStockTake) and Repair status, so a broken unit cannot be checked out.
 // v18: families. Drill bits, sanding paper and similar items, each on its own tab named after the family.
 // Accessories go out and come back. Consumables are used up. The Log now records quantity (I), unit cost (J) and total (K).
 // v17: a small "ping" request the scanner sends every few minutes while staff are signed in, to keep the server responsive.
@@ -107,7 +108,7 @@ function availableList(pin, category) {
 
   const rows = SpreadsheetApp.getActive().getSheetByName(TOOLS).getDataRange().getValues();
   const avail = rows.slice(1).filter(r =>
-    String(r[0]).trim() !== '' && r[4] !== 'Out' && String(r[2]).trim() === String(category).trim());
+    String(r[0]).trim() !== '' && r[4] !== 'Out' && r[4] !== 'Repair' && String(r[2]).trim() === String(category).trim());
 
   const back = '<p style="margin-top:20px">' + navLink('add', 'Choose another category') + '</p>';
 
@@ -146,7 +147,7 @@ function checkoutBatch(pin, toolIds) {
 
     toolIds.forEach(id => {
       const idx = rows.findIndex((r, i) => i > 0 && String(r[0]) === String(id));
-      if (idx < 0 || rows[idx][4] === 'Out') { taken.push(id); return; }
+      if (idx < 0 || rows[idx][4] === 'Out' || rows[idx][4] === 'Repair') { taken.push(id); return; }
       const sheetRow = idx + 1;
       ts.getRange(sheetRow, 5, 1, 5).setValues([['Out', b.holder, now, due, staff.name]]);
       rows[idx][4] = 'Out'; // keep the in-memory copy in sync
@@ -218,7 +219,7 @@ function listPage() {
     const out = r[4] === 'Out';
     const due = r[7] ? new Date(r[7]) : null;
     const overdue = out && due && due < new Date();
-    const status = out ? '<b>Checked out</b>' : '<b style="color:' + TEAL_DARK + '">Available</b>';
+    const status = out ? '<b>Checked out</b>' : r[4] === 'Repair' ? '<b style="color:#b71c1c">Needs repair</b>' : '<b style="color:' + TEAL_DARK + '">Available</b>';
     const back = out ? (due ? fmt(due) : '-') + (overdue ? ' <b style="color:#c00">(overdue)</b>' : '') : '-';
     html += '<tr style="background:' + (out ? '#ffebee' : TEAL_LIGHT) + ';color:#000">' +
       '<td>' + esc(r[1]) + '</td><td>' + esc(r[2]) + '</td><td>' + status + '</td><td>' + back + '</td></tr>';
@@ -255,6 +256,7 @@ function recordMove(toolId, action, pin, studentNo, returnDate) {
     const log = ss.getSheetByName(LOG);
 
     if (action === 'out') {
+      if (row[4] === 'Repair') throw new Error('This tool needs repair and cannot be checked out.');
       if (row[4] === 'Out') throw new Error('Tool is already out');
       let holder, stuNo, due, mode;
 
@@ -586,7 +588,7 @@ function apiCheckout(token, ids, no, ret) {
 
     ids.forEach(id => {
       const idx = rows.findIndex((r, i) => i > 0 && String(r[0]) === id);
-      if (idx < 0 || rows[idx][4] === 'Out') { taken.push(id); return; }
+      if (idx < 0 || rows[idx][4] === 'Out' || rows[idx][4] === 'Repair') { taken.push(id); return; }
       ts.getRange(idx + 1, 5, 1, 5).setValues([['Out', holder, now, due, staff.name]]);
       rows[idx][4] = 'Out';
       log.appendRow([now, id, 'Out', stuNo, holder, staff.id, staff.name, 'Scanner']);
@@ -855,4 +857,45 @@ function apiVisit(token, no) {
       at: Utilities.formatDate(r[0], tz, 'HH:mm')
     }));
   return { takes: takes };
+}
+
+
+// ---------- Stock take import (v19) ----------
+// Paste the stock take CSV (Category, Name, Status, Notes) into a tab called StockImport,
+// then run importStockTake() from the Apps Script editor.
+// It adds one Tools row per unit whose Name is not already in Tools, with the next TL- ID.
+// Rows with Status "Repair" are listed as "Needs repair" and cannot be checked out.
+// Run importStockTake(true) first to see what would be added without writing anything.
+const IMPORT_TAB = 'StockImport';
+
+function importStockTake(dryRun) {
+  const ss = SpreadsheetApp.getActive();
+  const src = ss.getSheetByName(IMPORT_TAB);
+  const tools = ss.getSheetByName(TOOLS);
+  if (!src) throw new Error('Add a tab called ' + IMPORT_TAB + ' and paste the CSV into it first.');
+  const srcRows = src.getDataRange().getValues().slice(1).filter(r => String(r[1]).trim() !== '');
+  const existing = tools.getDataRange().getValues().slice(1);
+  const names = new Set(existing.map(r => String(r[1]).trim().toLowerCase()));
+  let next = Math.max(0, ...existing.map(r => {
+    const m = String(r[0]).match(/^TL-(\d+)$/);
+    return m ? Number(m[1]) : 0;
+  })) + 1;
+  const toAdd = [], skipped = [];
+  srcRows.forEach(r => {
+    const cat = String(r[0]).trim(), name = String(r[1]).trim();
+    const repair = String(r[2]).trim().toLowerCase() === 'repair';
+    const notes = String(r[3] || '').trim();
+    if (names.has(name.toLowerCase())) { skipped.push(name); return; }
+    names.add(name.toLowerCase());
+    const id = 'TL-' + String(next++).padStart(3, '0');
+    // Tools columns: A ID, B name, C category, D notes, E status, F holder, G unused, H due, I signed by
+    toAdd.push([id, name, cat, notes, repair ? 'Repair' : '', '', '', '', '']);
+  });
+  if (!dryRun && toAdd.length) {
+    tools.getRange(tools.getLastRow() + 1, 1, toAdd.length, 9).setValues(toAdd);
+  }
+  const repairs = toAdd.filter(t => t[4] === 'Repair').length;
+  Logger.log((dryRun ? 'Would add ' : 'Added ') + toAdd.length + ' tools (' + repairs + ' need repair). ' +
+    'Already listed and skipped: ' + skipped.length + (skipped.length ? ' - ' + skipped.join(', ') : '') + '.');
+  return { added: toAdd.length, repairs: repairs, skipped: skipped.length, dryRun: !!dryRun };
 }
