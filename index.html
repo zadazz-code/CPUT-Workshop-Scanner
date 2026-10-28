@@ -1297,6 +1297,13 @@ function toggleHold(){
   if (holdOpen && (document.querySelectorAll('input.hold:checked').length || accTicked())) return;
   holdOpen = !holdOpen;
   renderHoldToggle();
+  if (holdOpen) scrollToHold();   // bring the "Out to this student" bar to the top of the screen
+  else scrollToStudent();         // closing returns to the student section, as after a new sign-in
+}
+function scrollToHold(){
+  const headerH = document.querySelector('header').offsetHeight;
+  const y = $('holdToggle').getBoundingClientRect().top + window.scrollY - headerH - 12;
+  window.scrollTo({ top: Math.max(0, y), behavior: 'smooth' });
 }
 function renderHoldToggle(){
   $('holdBody').classList.toggle('hidden', !holdOpen);
