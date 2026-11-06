@@ -1162,7 +1162,15 @@ async function checkOut(){
     if (due > 0) parts.push('<b>Total to pay: ' + money(due) + '</b>');
   }
   const ok = await confirmSave('Check out ' + total + ' item' + (total > 1 ? 's' : '') + '?', parts, 'Check out');
-  if (!ok || S.token !== token) return;
+  if (S.token !== token) return;
+  if (!ok) {
+    // Cancel empties the check out, as the first screen does, and puts the cursor back in the tool box.
+    ids.forEach(id => S.items.delete(id));
+    S.lines.clear();
+    renderLists();
+    focusTool();
+    return status('Check out cleared.');
+  }
   // Clear the rows straight away; they come back only if the server refuses them.
   const savedLines = new Map(S.lines);
   ids.forEach(id => S.items.delete(id));
