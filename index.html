@@ -73,6 +73,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 .overlay.hidden{display:none !important}
 .sheet{background:#fff;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:18px;max-height:85vh;overflow:auto}
 .sheet button{margin-top:10px}
+#confirmBox button:focus{outline:4px solid #00897b;outline-offset:3px}
 #famBox .famItem:focus,#famBox #famQty:focus,#famBox button:focus{outline:3px solid #00897b;outline-offset:2px}
 .toast button{display:inline-block;width:auto;min-height:40px;margin:8px 0 0 14px;padding:6px 14px;font-size:17px;background:#fff;color:var(--dark);border:0;border-radius:8px}
 .scanFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;opacity:0;z-index:30;transition:opacity .15s}
@@ -895,9 +896,11 @@ $('manual').addEventListener('keydown', e => {
 let confirmOpenedAt = 0;
 document.addEventListener('keydown', e => {
   if ($('confirmBox').classList.contains('hidden')) return;
+  // Down and Right move to Cancel; Up and Left move to Confirm.
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
     e.preventDefault();
-    ($('confirmNo') === document.activeElement ? $('confirmOk') : $('confirmNo')).focus({ preventScroll: true });
+    const toCancel = e.key === 'ArrowDown' || e.key === 'ArrowRight';
+    (toCancel ? $('confirmNo') : $('confirmOk')).focus({ preventScroll: true });
     return;
   }
   if (e.key !== 'Enter') return;
