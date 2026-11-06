@@ -1447,6 +1447,7 @@ function addFamilyLine(){
   famBasket = [];
   famBasketRender();
   $('famBox').classList.add('hidden');
+  focusTool();   // Enter now checks out: the cursor is in the tool box, empty
   feedback(true, names.join(', '));
   renderLists();
   highlightRow(last.code);
