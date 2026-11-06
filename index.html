@@ -262,6 +262,16 @@ let last = Date.now();
 let busy = false;
 let qr = null, camOn = false, lastId = '', lastAt = 0, toastTimer = null, cbN = 0;
 const pending = new Set();
+let toolCache = new Map();   // id -> {id, name, status}, loaded at sign-in so names show at once
+
+async function loadToolCache(){
+  if (!S.token) return;
+  const token = S.token;
+  try {
+    const r = await api({ api: 'toollist', token: token });
+    if (S.token === token) toolCache = new Map(r.tools.map(t => [t.id, t]));
+  } catch (e) { /* the scan still works without names; the server answer fills them in */ }
+}
 let mode = 'add'; // 'add' = add to check-out/check-in lists, 'who' = show who has the tool
 let scanTarget = 'tool'; // 'tool' = reading tool labels, 'student' = staff reading a student's number QR, 'mystudent' = a student reading their own card
 const studentCache = new Map(); // students confirmed this sign-in, so repeat numbers don't wait for the server
@@ -377,6 +387,7 @@ async function signIn(){
 }
 
 function showApp(){
+  loadToolCache();
   $('signin').classList.add('hidden');
   $('staffBtn').classList.add('hidden');
   $('studentIn').classList.add('hidden');
@@ -401,6 +412,7 @@ async function lockOut(msg){
   await stopCamera();
   S = fresh();
   studentCache.clear();
+  toolCache = new Map();
   scanTarget = 'tool';
   setMode('add');
   $('app').classList.add('hidden');
@@ -888,8 +900,14 @@ async function addTool(id){
   touch();
   if (S.items.has(id)) return status('That item is already in the list.', 'bad');
   if (pending.has(id)) return;
+  const known = toolCache.get(id);
+  if (known && known.status === 'Repair') {
+    flashScan(false, id);
+    return status(known.name + ' is currently unavailable due to repairs.', 'bad');
+  }
   pending.add(id);
-  S.items.set(id, { id: id, name: 'Checking…', pending: true });
+  if (known) status('Checking ' + known.name + '…');
+  S.items.set(id, { id: id, name: known ? known.name : 'Checking…', pending: true });
   renderLists();
   highlightRow(id);
   const token = S.token;
@@ -1415,6 +1433,8 @@ function renderHoldToggle(){
 function scrollToStudent(){
   holdOpen = false;
   renderHoldToggle();
+  loadToolCache();   // names and status may have changed after a save
+  focusTool();
   const heading = $('studentBox').previousElementSibling; // the "Student" heading above the student box
   if (!heading) return;
   // Stop just below the sticky header, so the heading and the student's name are both visible.

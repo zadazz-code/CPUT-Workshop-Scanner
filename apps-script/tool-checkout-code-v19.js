@@ -1,6 +1,6 @@
 // ============================================================
 // Workshop Tools - Apps Script (v19)
-// v19: stock take import (importStockTake) and Repair status, so a broken unit cannot be checked out.
+// v19 also: toollist route (names and status for every tool, for instant names on scan). Stock take import (importStockTake) and Repair status, so a broken unit cannot be checked out.
 // v18: families. Drill bits, sanding paper and similar items, each on its own tab named after the family.
 // Accessories go out and come back. Consumables are used up. The Log now records quantity (I), unit cost (J) and total (K).
 // v17: a small "ping" request the scanner sends every few minutes while staff are signed in, to keep the server responsive.
@@ -337,6 +337,17 @@ function findStaff(pin) {
   return { id: String(hits[0][0]).trim(), name: String(hits[0][1]).trim() };
 }
 
+// Every tool's ID, name and status, so the scanner can show a name the moment a label is scanned.
+function apiToolList(token) {
+  staffFromToken(token);
+  const rows = SpreadsheetApp.getActive().getSheetByName(TOOLS).getDataRange().getValues();
+  return {
+    tools: rows.slice(1).filter(r => String(r[0]).trim() !== '').map(r => ({
+      id: String(r[0]).trim(), name: String(r[1]), status: String(r[4]).trim()
+    }))
+  };
+}
+
 function findTool(id) {
   const rows = SpreadsheetApp.getActive().getSheetByName(TOOLS).getDataRange().getValues();
   const r = rows.slice(1).find(r => String(r[0]) === id);
@@ -464,6 +475,7 @@ function apiRoute(p) {
     case 'holding':  return apiHolding(p.token, p.no);
     case 'ping':     return { time: new Date().toISOString() };
     case 'mytools':  return apiMyTools(p.no);
+    case 'toollist': return apiToolList(p.token);
     case 'checkout': return apiCheckout(p.token, ids, p.no, p.ret);
     case 'checkin':  return apiCheckin(p.token, ids);
     case 'family':   return apiFamily(p.token, p.qr);
