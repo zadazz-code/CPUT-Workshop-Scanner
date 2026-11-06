@@ -916,3 +916,20 @@ function importStockTake(dryRun) {
 function previewStockTake() {
   return importStockTake(true);
 }
+
+// ---------- Keep warm (8 am to 2 pm) ----------
+// A time trigger runs this every minute. Outside 08:00 to 13:59 it does nothing; during the day
+// it reads the Tools sheet so Google keeps the script ready for the next scan.
+function keepWarm() {
+  const hour = Number(Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'H'));
+  if (hour < 8 || hour >= 14) return;
+  SpreadsheetApp.getActive().getSheetByName(TOOLS).getRange('A1').getValue();
+}
+
+// Run this once from the editor (choose createKeepWarmTrigger, then Run). It replaces any earlier keep-warm trigger.
+function createKeepWarmTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === 'keepWarm') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('keepWarm').timeBased().everyMinutes(1).create();
+}
