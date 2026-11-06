@@ -890,8 +890,15 @@ $('manual').addEventListener('keydown', e => {
 });
 
 // On the summary, Enter confirms. Listened on the box itself, so the Enter that opened it cannot also confirm it.
+// Arrow keys move between Confirm and Cancel; Enter presses the one that is highlighted (Confirm by default).
 $('confirmBox').addEventListener('keydown', e => {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    e.preventDefault();
+    ($('confirmNo') === document.activeElement ? $('confirmOk') : $('confirmNo')).focus();
+    return;
+  }
   if (e.key !== 'Enter') return;
+  if (e.target.tagName === 'BUTTON') return;   // a focused button presses itself
   e.preventDefault();
   $('confirmOk').click();
 });
