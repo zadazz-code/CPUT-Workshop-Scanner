@@ -1,6 +1,6 @@
 // ============================================================
-// Workshop Tools - Apps Script (v19)
-// v19 also: toollist route (names and status for every tool, for instant names on scan). Stock take import (importStockTake) and Repair status, so a broken unit cannot be checked out.
+// Workshop Tools - Apps Script (v20)
+// v20: final version. Adds the toollist route (names and status for every tool, for instant names on scan). Stock take import (importStockTake) and Repair status, so a broken unit cannot be checked out.
 // v18: families. Drill bits, sanding paper and similar items, each on its own tab named after the family.
 // Accessories go out and come back. Consumables are used up. The Log now records quantity (I), unit cost (J) and total (K).
 // v17: a small "ping" request the scanner sends every few minutes while staff are signed in, to keep the server responsive.
@@ -872,7 +872,7 @@ function apiVisit(token, no) {
 }
 
 
-// ---------- Stock take import (v19) ----------
+// ---------- Stock take import ----------
 // Paste the stock take CSV (Category, Name, Status, Notes) into a tab called StockImport,
 // then run importStockTake() from the Apps Script editor.
 // It adds one Tools row per unit whose Name is not already in Tools, with the next TL- ID.
