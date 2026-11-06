@@ -89,7 +89,7 @@ select{display:block;width:100%;height:52px;font-size:20px;padding:8px 10px;bord
 .stepper.sm button{min-width:40px;min-height:40px;font-size:20px;padding:4px 8px}
 .stepper.sm input{width:64px;height:40px}
 .stepper .qn{min-width:34px;text-align:center;font-weight:bold;font-size:20px}
-.famItem{display:block;width:100%;text-align:left;padding:12px 14px;margin:8px 0;border:2px solid var(--teal);border-radius:8px;background:#fff;color:#000;font-size:18px;cursor:pointer}
+.famItem{display:block;width:100%;text-align:left;touch-action:manipulation;user-select:none;padding:12px 14px;margin:8px 0;border:2px solid var(--teal);border-radius:8px;background:#fff;color:#000;font-size:18px;cursor:pointer}
 .famItem .fName{font-weight:500}
 .famItem .fSub{font-size:15px;margin-top:2px}
 .famItem.sel{outline:3px solid var(--dark);outline-offset:2px}
@@ -1353,7 +1353,7 @@ function famRender(){
     const cls = ['famItem', it.stock < 1 ? 'none' : it.low ? 'low' : '', it.code === sel ? 'sel' : ''].join(' ');
     let sub = it.stock < 1 ? 'No stock' : it.low ? 'Low stock: ' + it.stock + ' left' : it.stock + ' in stock';
     if (famCurrent && isConsumable(famCurrent.group) && it.unitCost) sub += ' · ' + money(it.unitCost) + ' each';
-    return '<div class="' + cls + '" role="button" tabindex="0" data-code="' + esc(it.code) + '" onclick="famPick(this.dataset.code)">' +
+    return '<div class="' + cls + '" role="button" tabindex="0" data-code="' + esc(it.code) + '" onclick="famTap(this)">' +
       '<div class="fName">' + esc(it.label) + '</div><div class="fSub">' + sub + '</div></div>';
   }).join('') : '';
 }
@@ -1363,6 +1363,19 @@ function famRender(){
 function focusFamItem(){
   const el = document.querySelector('#famList .famItem.sel') || document.querySelector('#famList .famItem');
   if (el) el.focus({ preventScroll: true });
+}
+
+// Touch and mouse: one tap selects an item. A second tap on the same item within half a second adds it
+// (a double-click on a computer does the same). Phones cannot press Enter, so this is how they add items.
+let famLastTap = { code: '', at: 0 };
+function famTap(el){
+  const code = el.dataset.code;
+  if (el.classList.contains('none')) return;   // no stock: nothing to pick
+  const now = performance.now();
+  const second = famLastTap.code === code && now - famLastTap.at < 500;
+  famLastTap = second ? { code: '', at: 0 } : { code, at: now };
+  famPick(code);
+  if (second) famLogCurrent();   // logs an accessory, or a consumable with the quantity shown
 }
 
 // Keyboard in the picker: Up and Down move through the items, the quantity box and the two buttons.
