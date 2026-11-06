@@ -889,16 +889,20 @@ $('manual').addEventListener('keydown', e => {
   else barAction();
 });
 
-// On the summary, Enter confirms. Listened on the box itself, so the Enter that opened it cannot also confirm it.
-// Arrow keys move between Confirm and Cancel; Enter presses the one that is highlighted (Confirm by default).
-$('confirmBox').addEventListener('keydown', e => {
+// On the summary, the arrow keys move between Confirm and Cancel, and Enter presses the highlighted one
+// (Confirm by default). Listened on the whole page while the summary is open, so the focus does not matter.
+// The Enter that opened the summary is ignored for a moment, so it cannot also confirm it.
+let confirmOpenedAt = 0;
+document.addEventListener('keydown', e => {
+  if ($('confirmBox').classList.contains('hidden')) return;
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
     e.preventDefault();
-    ($('confirmNo') === document.activeElement ? $('confirmOk') : $('confirmNo')).focus();
+    ($('confirmNo') === document.activeElement ? $('confirmOk') : $('confirmNo')).focus({ preventScroll: true });
     return;
   }
   if (e.key !== 'Enter') return;
-  if (e.target.tagName === 'BUTTON') return;   // a focused button presses itself
+  if (performance.now() - confirmOpenedAt < 400) { e.preventDefault(); return; }
+  if (e.target === $('confirmNo') || e.target === $('confirmOk')) return;   // a focused button presses itself
   e.preventDefault();
   $('confirmOk').click();
 });
@@ -1036,6 +1040,7 @@ function confirmSave(title, lines, okLabel){
     const done = v => { $('confirmBox').classList.add('hidden'); resolve(v); };
     $('confirmOk').onclick = () => done(true);
     $('confirmNo').onclick = () => done(false);
+    confirmOpenedAt = performance.now();
     $('confirmBox').classList.remove('hidden');
     setTimeout(() => $('confirmOk').focus({ preventScroll: true }), 0);
   });
