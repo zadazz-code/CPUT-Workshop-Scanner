@@ -1354,6 +1354,8 @@ function famMove(dir){
 
 document.addEventListener('keydown', e => {
   if ($('famBox').classList.contains('hidden')) return;
+  // Only keys pressed inside the picker count. The Enter that opened it (from the tool box) must not also choose an item.
+  if (!$('famBox').contains(e.target) && e.target !== document.body) return;
   if (e.target.id === 'famQty') {
     if (e.key === 'Enter') { e.preventDefault(); addFamilyLine(); }
     return;
