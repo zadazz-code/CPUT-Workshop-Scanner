@@ -417,6 +417,7 @@ async function lockOut(msg){
   $('famBox').classList.add('hidden');
   $('confirmBox').classList.add('hidden');
   $('visitBody').innerHTML = '';
+  focusStart();
   renderStudent();
   renderLists();
   loadHolding();
@@ -453,6 +454,7 @@ function renderStudent(){
 function changeStudent(){
   touch();
   S.student = null;
+  focusStart();
   S.lines.clear();
   S.visitTakes = [];
   renderStudent();
@@ -567,6 +569,16 @@ async function checkInHolding(){
     renderLists();
     loadHolding();
   }
+}
+
+// Puts the cursor where the next input is needed, so a scan or typed number goes straight in.
+function focusStart(){
+  setTimeout(() => {
+    let el;
+    if (S.token) el = !S.student ? $('stuNo') : $('manual');   // staff: student box, then tool box
+    else el = $('signin').classList.contains('hidden') ? $('myNo') : $('pin');   // students: their number box; staff sign-in: PIN
+    if (el) el.focus({ preventScroll: true });
+  }, 0);
 }
 
 // After a student is confirmed, put the cursor in the tool box. preventScroll keeps the student name in view.
@@ -1511,6 +1523,7 @@ function barAction(){
 
 // ---------- Offline shell ----------
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+focusStart();
 </script>
 </body>
 </html>
