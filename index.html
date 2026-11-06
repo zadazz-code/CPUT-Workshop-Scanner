@@ -869,8 +869,19 @@ document.addEventListener('keydown', e => {
 });
 
 // Enter adds the typed tool and keeps the cursor in the box, so the next number can be typed straight away.
+// Enter with a number in the box adds it. Enter on an empty box runs the bar's action (check out or check in), so two Enters finish a session.
 $('manual').addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); addManual(); }
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  if ($('manual').value.trim()) addManual();
+  else barAction();
+});
+
+// On the summary, Enter confirms. Listened on the box itself, so the Enter that opened it cannot also confirm it.
+$('confirmBox').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  $('confirmOk').click();
 });
 
 async function addTool(id){
@@ -1001,6 +1012,7 @@ function confirmSave(title, lines, okLabel){
     $('confirmOk').onclick = () => done(true);
     $('confirmNo').onclick = () => done(false);
     $('confirmBox').classList.remove('hidden');
+    setTimeout(() => $('confirmOk').focus({ preventScroll: true }), 0);
   });
 }
 
