@@ -73,6 +73,7 @@ input[type=range]{height:auto;padding:0;border:0;accent-color:var(--teal)}
 .overlay.hidden{display:none !important}
 .sheet{background:#fff;width:100%;max-width:560px;border-radius:14px 14px 0 0;padding:18px;max-height:85vh;overflow:auto}
 .sheet button{margin-top:10px}
+#famBox .famItem:focus,#famBox #famQty:focus,#famBox button:focus{outline:3px solid #00897b;outline-offset:2px}
 .toast button{display:inline-block;width:auto;min-height:40px;margin:8px 0 0 14px;padding:6px 14px;font-size:17px;background:#fff;color:var(--dark);border:0;border-radius:8px}
 .scanFlash{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;pointer-events:none;opacity:0;z-index:30;transition:opacity .15s}
 .scanFlash.show{opacity:1}
@@ -1340,32 +1341,56 @@ function focusFamItem(){
   if (el) el.focus({ preventScroll: true });
 }
 
+// Keyboard in the picker: Up and Down move through the items, the quantity box and the two buttons.
+// An item is chosen as the cursor reaches it. Enter on an item or the quantity moves on to the next step,
+// and Enter on a button presses it (Add another item, Add to check out).
+function famFocusables(){
+  return [...document.querySelectorAll('#famList .famItem:not(.none), #famQtyBox:not(.hidden) #famQty, #famAnother:not([disabled]), #famOk:not([disabled])')];
+}
+
+function famFocus(el){
+  if (!el) return;
+  if (el.classList.contains('famItem')) {
+    const code = el.dataset.code;
+    famPick(code);
+    famRender();
+    const again = document.querySelector('#famList [data-code="' + code + '"]');
+    if (again) { again.scrollIntoView({ block: 'nearest' }); again.focus({ preventScroll: true }); }
+    return;
+  }
+  el.scrollIntoView({ block: 'nearest' });
+  el.focus({ preventScroll: true });
+}
+
 function famMove(dir){
-  if (!famCurrent) return;
-  const list = famCurrent.items.filter(i => i.stock >= 1);
+  const list = famFocusables();
   if (!list.length) return;
-  const cur = list.findIndex(i => i.code === $('famSel').value);
-  const next = cur < 0 ? (dir > 0 ? 0 : list.length - 1) : (cur + dir + list.length) % list.length;
-  famPick(list[next].code);
-  famRender();
-  const el = document.querySelector('#famList [data-code="' + list[next].code + '"]');
-  if (el) { el.scrollIntoView({ block: 'nearest' }); el.focus({ preventScroll: true }); }
+  let idx = list.indexOf(document.activeElement);
+  if (idx < 0) {
+    const sel = list.findIndex(el => el.dataset.code === $('famSel').value);
+    idx = sel >= 0 ? sel : (dir > 0 ? -1 : list.length);
+  }
+  famFocus(list[Math.min(list.length - 1, Math.max(0, idx + dir))]);
+}
+
+// The step after the item or quantity box: the quantity box (consumables), otherwise Add to check out.
+function famNextStep(){
+  return document.querySelector('#famQtyBox:not(.hidden) #famQty') || document.querySelector('#famOk:not([disabled])') || document.querySelector('#famAnother:not([disabled])');
 }
 
 document.addEventListener('keydown', e => {
   if ($('famBox').classList.contains('hidden')) return;
   // Only keys pressed inside the picker count. The Enter that opened it (from the tool box) must not also choose an item.
   if (!$('famBox').contains(e.target) && e.target !== document.body) return;
-  if (e.target.id === 'famQty') {
-    if (e.key === 'Enter') { e.preventDefault(); addFamilyLine(); }
-    return;
-  }
-  if (e.target.classList && e.target.classList.contains('x')) return;   // Remove buttons keep their own Enter
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); famMove(e.key === 'ArrowDown' ? 1 : -1); }
-  else if (e.key === 'Enter') {
-    e.preventDefault();
-    if (!$('famSel').value) famMove(1); else addFamilyLine();
-  }
+  if (e.target.classList && e.target.classList.contains('x')) return;   // Remove buttons keep their own keys
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); famMove(e.key === 'ArrowDown' ? 1 : -1); return; }
+  if (e.key !== 'Enter') return;
+  if (e.target.tagName === 'BUTTON') return;   // a focused button presses itself
+  e.preventDefault();
+  if (e.target.id === 'famQty') return famFocus(document.querySelector('#famOk:not([disabled])') || document.querySelector('#famAnother:not([disabled])'));
+  if (e.target.classList.contains('famItem')) return famFocus(famNextStep());
+  if (!$('famSel').value) return famMove(1);
+  addFamilyLine();   // nothing in focus: accept the current choice
 });
 
 // Only items with stock can be picked. Empty ones show dark red and stay greyed out.
